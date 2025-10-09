@@ -1,2 +1,1 @@
-export { retrieveKnowledgeBase } from './retrieve-knowledge-base';
-export { retrieveKnowledgeBaseSimple } from './retrieve-knowledge-base-simple';
+// No tools exported - MCP tools are loaded dynamically in the API route
