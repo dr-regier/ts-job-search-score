@@ -18,7 +18,7 @@ export const scoreJobsTool = {
   description:
     "Return scored jobs with detailed fit analysis. Use this to provide job scores with breakdowns by category (salary, location, company, role, requirements), reasoning for the score, identified gaps, and priority level. Only score saved jobs - reject requests to score unsaved/temporary jobs.",
 
-  parameters: z.object({
+  inputSchema: z.object({
     scoredJobs: z
       .array(
         z.object({

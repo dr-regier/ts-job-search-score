@@ -86,7 +86,7 @@ export const searchAdzunaJobs = {
   description:
     "Search for jobs using the Adzuna job search API. Returns jobs from multiple companies and job boards. Use this for broad job searches or when the user doesn't specify particular companies. Results are displayed temporarily and must be explicitly saved by the user.",
 
-  parameters: z.object({
+  inputSchema: z.object({
     query: z
       .string()
       .describe(

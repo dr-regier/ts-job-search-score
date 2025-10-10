@@ -19,7 +19,7 @@ export const saveJobsToProfile = {
   description:
     "Save selected jobs to the user's profile. Use this ONLY when the user explicitly requests to save jobs (e.g., 'save the top 5', 'save jobs 2, 5, and 12', 'save all remote ones'). NEVER auto-save jobs without user request. Jobs must be marked with applicationStatus: 'saved' and will persist in localStorage.",
 
-  parameters: z.object({
+  inputSchema: z.object({
     jobs: z
       .array(
         z.object({
