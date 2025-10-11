@@ -2,7 +2,10 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type ToolUIPart } from "ai";
-import { useState, useEffect, useRef, memo } from "react";
+import React, { useState, useEffect, useRef, memo } from "react";
+import { getJobs, getProfile } from "@/lib/storage";
+import type { Job } from "@/types/job";
+import type { UserProfile } from "@/types/profile";
 import {
   Conversation,
   ConversationContent,
@@ -155,14 +158,72 @@ MemoizedMessage.displayName = 'MemoizedMessage';
 
 export default function ChatAssistant({ api }: ChatAssistantProps) {
   const [input, setInput] = useState("");
-  const { messages: rawMessages, status, sendMessage } = useChat({
+
+  // State for saved jobs and user profile (from localStorage)
+  const [savedJobs, setSavedJobs] = useState<Job[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  // Load saved jobs and profile from localStorage
+  useEffect(() => {
+    const jobs = getJobs();
+    const profile = getProfile();
+    setSavedJobs(jobs);
+    setUserProfile(profile);
+  }, []);
+
+  // Discovery Agent (Job Discovery) - default chat
+  const discoveryChat = useChat({
     transport: api ? new DefaultChatTransport({ api }) : undefined,
+    onFinish: () => {
+      // Reload saved jobs after discovery agent finishes (in case jobs were saved)
+      setSavedJobs(getJobs());
+    },
   });
 
+  // Matching Agent (Job Matching/Scoring)
+  const matchingChat = useChat({
+    transport: new DefaultChatTransport({
+      api: '/api/match',
+      body: {
+        jobs: savedJobs,
+        profile: userProfile,
+      },
+    }),
+    onFinish: () => {
+      // Reload saved jobs after matching agent finishes (scores may have been added)
+      setSavedJobs(getJobs());
+    },
+  });
+
+  // Determine which agent to use based on current context
+  const [activeAgent, setActiveAgent] = useState<'discovery' | 'matching'>('discovery');
+
+  // Merge messages from both agents chronologically
+  const allRawMessages = React.useMemo(() => {
+    const discovery = discoveryChat.messages.map(msg => ({
+      ...msg,
+      agentSource: 'discovery' as const
+    }));
+    const matching = matchingChat.messages.map(msg => ({
+      ...msg,
+      agentSource: 'matching' as const
+    }));
+
+    // Combine and sort by creation time (messages have IDs that are chronologically ordered)
+    return [...discovery, ...matching].sort((a, b) => {
+      // Messages are added chronologically, so we can rely on array order
+      // But we'll use a simple timestamp comparison if needed
+      return a.id.localeCompare(b.id);
+    });
+  }, [discoveryChat.messages, matchingChat.messages]);
+
+  // Status is from whichever agent is currently active
+  const status = activeAgent === 'matching' ? matchingChat.status : discoveryChat.status;
+
   // Debounced messages for performance - update every 30ms instead of every token
-  const [debouncedMessages, setDebouncedMessages] = useState(rawMessages);
+  const [debouncedMessages, setDebouncedMessages] = useState(allRawMessages);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastRawMessagesRef = useRef(rawMessages);
+  const lastRawMessagesRef = useRef(allRawMessages);
 
   useEffect(() => {
     // Clear existing timer
@@ -173,12 +234,12 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
     // Check for critical events that need immediate updates
     const needsImmediateUpdate = () => {
       // Update immediately when streaming stops
-      if (status !== 'streaming' && lastRawMessagesRef.current !== rawMessages) {
+      if (status !== 'streaming' && lastRawMessagesRef.current !== allRawMessages) {
         return true;
       }
 
       // Update immediately when tool calls appear/change
-      const hasNewToolCalls = rawMessages.some(msg =>
+      const hasNewToolCalls = allRawMessages.some(msg =>
         (msg as any).parts?.some((p: any) => p.type?.startsWith('tool-')) &&
         !lastRawMessagesRef.current.some(oldMsg => oldMsg.id === msg.id)
       );
@@ -192,13 +253,13 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
 
     if (needsImmediateUpdate()) {
       // Immediate update for critical events
-      setDebouncedMessages(rawMessages);
-      lastRawMessagesRef.current = rawMessages;
+      setDebouncedMessages(allRawMessages);
+      lastRawMessagesRef.current = allRawMessages;
     } else {
       // Debounced update for regular streaming
       debounceTimerRef.current = setTimeout(() => {
-        setDebouncedMessages(rawMessages);
-        lastRawMessagesRef.current = rawMessages;
+        setDebouncedMessages(allRawMessages);
+        lastRawMessagesRef.current = allRawMessages;
       }, 30);
     }
 
@@ -207,10 +268,31 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [rawMessages, status]);
+  }, [allRawMessages, status]);
 
   // Use debounced messages for rendering
   const messages = debouncedMessages;
+
+  /**
+   * Detects if user message indicates scoring/matching intent
+   */
+  const detectScoringIntent = (text: string): boolean => {
+    const lowerText = text.toLowerCase();
+    const scoringKeywords = [
+      'score',
+      'analyze',
+      'match',
+      'fit',
+      'rate',
+      'evaluate',
+      'assess',
+      'rank',
+      'priority',
+      'compare',
+    ];
+
+    return scoringKeywords.some(keyword => lowerText.includes(keyword));
+  };
 
   const handleSubmit = async (
     message: { text?: string; files?: any[] },
@@ -218,13 +300,42 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
   ) => {
     if (!message.text?.trim() || status === "streaming") return;
 
+    const messageText = message.text.trim();
+
     // Clear the form immediately after extracting the message
     const form = (event.target as Element)?.closest("form") as HTMLFormElement;
     if (form) {
       form.reset();
     }
 
-    sendMessage({ text: message.text });
+    // Determine which agent to use based on intent
+    const wantsScoring = detectScoringIntent(messageText);
+
+    if (wantsScoring && savedJobs.length > 0) {
+      // User wants scoring and has saved jobs -> use Matching Agent
+      if (!userProfile) {
+        // No profile - send to discovery agent to handle this gracefully
+        discoveryChat.sendMessage({
+          text: "I'd like to score jobs, but I don't have a profile yet. Can you help me create one?"
+        });
+        setActiveAgent('discovery');
+      } else {
+        // Has profile and saved jobs - use matching agent
+        setActiveAgent('matching');
+        matchingChat.sendMessage({ text: messageText });
+      }
+    } else if (wantsScoring && savedJobs.length === 0) {
+      // User wants scoring but has no saved jobs - explain this
+      discoveryChat.sendMessage({
+        text: "I'd like to score jobs, but I haven't saved any yet. Can you help me find and save some jobs first?"
+      });
+      setActiveAgent('discovery');
+    } else {
+      // Default to Discovery Agent for job search and other queries
+      setActiveAgent('discovery');
+      discoveryChat.sendMessage({ text: messageText });
+    }
+
     setInput("");
   };
 
