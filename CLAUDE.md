@@ -19,37 +19,45 @@ This project strictly uses **pnpm**. Do not use npm or yarn.
 
 ## Architecture
 
-This is a TypeScript Next.js 15 application with AI-powered web scraping capabilities using MCP (Model Context Protocol) tools:
+This is a TypeScript Next.js 15 application with AI-powered job search and matching capabilities using multi-agent architecture:
 
 ### Core Stack
 
 - **Next.js 15** with App Router and Turbopack for fast builds
 - **AI SDK 5** with OpenAI GPT-5 integration
 - **MCP (Model Context Protocol)** with Firecrawl for web scraping
+- **Adzuna API** for job board searches
 - **shadcn/ui** components (New York style, neutral base color)
 - **Tailwind CSS v4** for styling
+- **localStorage** for data persistence (no database)
 
 ### Key Directories
 
 - `app/` - Next.js App Router pages and API routes
-- `app/api/chat/` - Main agent endpoint with MCP Firecrawl tools, Adzuna API search tool, websearch tool
+- `app/api/chat/` - Job Discovery Agent endpoint (Firecrawl MCP + Adzuna + custom tools)
+- `app/api/match/` - Job Matching Agent endpoint (scoring and fit analysis)
 - `components/chat/` - Chat interface components
 - `components/ai-elements/` - Vercel AI Elements components
-- `components/agent/` - Agent configuration (system prompts)
-  - `web-scraper-prompt.ts` - Web scraper agent system prompt
-- `components/agent/tools/` - Directory for AI SDK tools (currently empty - MCP tools loaded dynamically)
+- `components/agent/` - Agent configuration and tools
+  - `components/agent/prompts/` - Agent system prompts (job-discovery-prompt.ts, job-matching-prompt.ts)
+  - `components/agent/tools/` - Custom AI SDK tools (adzuna.ts, save-jobs.ts, score-jobs.ts)
 - `components/ui/` - shadcn/ui components
 - `lib/mcp/` - MCP client implementation for Firecrawl
+- `lib/storage/` - localStorage utilities (profile.ts, jobs.ts)
 - `lib/utils.ts` - Utility functions including `cn()` for className merging
-- `types/` - TypeScript type definitions
+- `types/` - TypeScript type definitions (job.ts, profile.ts)
 
 ### AI Integration
 
 - Uses AI SDK 5's `streamText()` for streaming responses
 - Configured for GPT-5 via OpenAI provider
+- Multi-agent architecture with two specialized agents:
+  - **Job Discovery Agent** (`/api/chat`) - Autonomous job search across multiple sources
+  - **Job Matching Agent** (`/api/match`) - Intelligent scoring and fit analysis
 - MCP Firecrawl integration via `getFirecrawlMCPClient()` in `/lib/mcp/`
-- System instructions defined in `components/agent/web-scraper-prompt.ts`
-- API route at `/api/agent-with-mcp-tools` with dynamic MCP tool loading
+- Custom tools: Adzuna API search, save jobs, score jobs
+- System instructions defined in `components/agent/prompts/`
+- Agent coordination via localStorage (no direct agent-to-agent calls)
 - use useChat for all streaming handling (read the doc first, always, before writing any streaming code: https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat)
 - **CRITICAL**: `sendMessage()` from useChat ONLY accepts UIMessage-compatible objects: `sendMessage({ text: "message" })`
 - **NEVER** use `sendMessage("string")` - this does NOT work and will cause runtime errors
@@ -57,6 +65,28 @@ This is a TypeScript Next.js 15 application with AI-powered web scraping capabil
 - Tool calls are supported in the response format
 - Requires environment variables in `.env.local`
 - Reference: https://ai-sdk.dev/docs/reference/ai-sdk-core/stream-text#streamtext
+
+### Agent Architecture
+
+**Job Discovery Agent** - Autonomously finds jobs across multiple sources
+- Tools: Firecrawl MCP (scrape, search), Adzuna API, web search, save jobs
+- Responsibilities: Search strategy, source selection, result refinement, job discovery
+- Output: Temporary job listings displayed in chat (user must explicitly save)
+- API: `/api/chat/route.ts`
+- Prompt: `components/agent/prompts/job-discovery-prompt.ts`
+
+**Job Matching Agent** - Analyzes jobs against user profile with detailed scoring
+- Tools: Firecrawl MCP (for company research), web search, score jobs
+- Responsibilities: Job fit analysis, weighted scoring, gap identification, priority assignment
+- Output: Scored jobs with reasoning, breakdown, and recommendations
+- API: `/api/match/route.ts`
+- Prompt: `components/agent/prompts/job-matching-prompt.ts`
+
+**Agent Coordination**
+- Agents do NOT directly call each other
+- Communication via localStorage (shared state)
+- User controls workflow (explicit save/score requests)
+- Each agent demonstrates autonomy within its domain
 
 ### AI SDK Tools
 
@@ -143,13 +173,35 @@ const wrappedTools = Object.fromEntries(
 );
 ```
 
+#### Custom Tools Implemented
+
+**Adzuna API Tool** (`components/agent/tools/adzuna.ts`)
+- Searches jobs across multiple companies via Adzuna API
+- Input: query, location (optional), resultsCount (default 20, max 50)
+- Output: Array of Job objects with action: "display"
+- Used by Job Discovery Agent for broad job searches
+
+**Save Jobs Tool** (`components/agent/tools/save-jobs.ts`)
+- Saves selected jobs to user's profile (localStorage)
+- Input: jobs array, criteria description (optional)
+- Output: Saved jobs with action: "saved" and savedIds array
+- Only called when user explicitly requests to save jobs
+- Marks jobs with applicationStatus: "saved"
+
+**Score Jobs Tool** (`components/agent/tools/score-jobs.ts`)
+- Returns scored jobs with detailed fit analysis
+- Input: scoredJobs array with score, breakdown, reasoning, gaps, priority
+- Output: Scored jobs data with action: "scored" and statistics
+- Used by Job Matching Agent to return analysis results
+- Client-side handler updates localStorage
+
 #### Creating New Tools and Agents
 
 **IMPORTANT**: When building more agent and tools functionality, ALWAYS follow the existing patterns in `/components/agent/` and `/lib/mcp/` folders. Study the existing implementations before creating new ones.
 
 When creating new AI SDK tools:
 1. Create a new file in `/components/agent/tools/`
-2. Use the `tool()` function from `ai` package
+2. Use Zod schemas for input validation (not the `tool()` function)
 3. Define clear Zod input schemas with descriptions
 4. Implement error handling in the `execute` function
 5. Export from `/components/agent/tools/index.ts`
@@ -162,27 +214,30 @@ When adding new MCP servers:
 4. Add tool wrapping for logging and monitoring
 
 When creating new agents:
-1. Follow the pattern established in `/app/api/agent-with-mcp-tools/route.ts`
-2. Create new prompts in `/components/agent/` following the structure of `web-scraper-prompt.ts`
+1. Follow the pattern established in `/app/api/chat/route.ts` or `/app/api/match/route.ts`
+2. Create new prompts in `/components/agent/prompts/` following existing structures
 3. Use the same streaming patterns and error handling as existing agents
 4. Always include proper tool configurations
+5. Wrap tools with logging for debugging
 
 Example AI SDK tool:
 ```typescript
-import { tool } from 'ai';
 import { z } from 'zod';
 
-export const myTool = tool({
+export const myTool = {
   description: 'Clear description of what the tool does',
   inputSchema: z.object({
     param: z.string().describe('What this parameter is for')
   }),
-  execute: async ({ param }) => {
+  execute: async ({ param }: { param: string }) => {
     // Tool implementation with logging
     console.log(`🔧 Tool called with param: ${param}`);
-    return { result: 'data' };
+    return {
+      action: 'display',
+      result: 'data'
+    };
   }
-});
+};
 ```
 
 #### Tool Call Monitoring
@@ -276,7 +331,20 @@ Create `.env.local` with:
 
 ```
 OPENAI_API_KEY=your_openai_api_key_here
+FIRECRAWL_API_KEY=your_firecrawl_api_key_here
+ADZUNA_APP_ID=your_adzuna_app_id_here
+ADZUNA_API_KEY=your_adzuna_api_key_here
 ```
+
+**Required APIs:**
+- **OpenAI API** - GPT-5 for agent reasoning and responses
+- **Firecrawl API** - Web scraping for company career pages
+- **Adzuna API** - Job board search across multiple sources
+
+**Optional (for RAG features if implemented):**
+- `VECTORIZE_ACCESS_TOKEN` - Vectorize for document retrieval
+- `VECTORIZE_ORG_ID` - Your Vectorize organization ID
+- `VECTORIZE_PIPELINE_ID` - Your Vectorize pipeline ID
 
 ## Critical Rules for useChat Implementation
 
