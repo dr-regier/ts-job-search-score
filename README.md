@@ -4,12 +4,14 @@ An intelligent job search and matching system powered by multi-agent AI architec
 
 ## Features
 
-- **Multi-Agent Architecture** - Two specialized AI agents working together:
+- **Unified Multi-Agent Chat** - Single conversation interface with intelligent routing:
   - **Job Discovery Agent** - Autonomously searches jobs across company career pages and job boards
   - **Job Matching Agent** - Analyzes job fit with intelligent scoring and gap identification
+  - **Intent Detection** - Automatically routes to appropriate agent based on user's message
+  - **Seamless Coordination** - Both agents work in same conversation with merged message streams
 - **Multi-Source Job Search** - Combines Firecrawl web scraping with Adzuna API for comprehensive coverage
 - **Intelligent Job Scoring** - Weighted scoring system (0-100) with detailed reasoning and gap analysis
-- **Chat-First Interface** - Natural language interaction with streaming responses
+- **Natural Language Commands** - Find, save, and score jobs through conversation
 - **AI Elements Components** - Rich UI components for tool calls, reasoning, and structured outputs
 - **localStorage Persistence** - Save jobs and profiles without needing a database
 - **TypeScript** - Full type safety across the entire application
@@ -111,9 +113,11 @@ An intelligent job search and matching system powered by multi-agent AI architec
         └─────────────────────────────────────────────────┘
 
 Key Features:
-- Agents do NOT call each other directly
-- User controls workflow (explicit save/score)
-- Each agent demonstrates autonomy within its domain
+- **Unified interface**: Both agents accessible in single conversation
+- **Intelligent routing**: Keywords like 'score', 'analyze', 'match' trigger Matching Agent
+- **Message merging**: Chronologically combined streams from both agents
+- **Context-aware**: Checks for saved jobs and profile before routing
+- **Graceful fallbacks**: Handles missing data with helpful messages
 - Communication via localStorage (shared state)
 ```
 

@@ -78,7 +78,13 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - Natural language save commands: "save top 5", "save all remote", "save jobs 2, 5, 12"
 - Saved jobs persist in localStorage with status tracking
 
-### 4. Chat-First Interface
+### 4. Unified Multi-Agent Chat Interface
+- **Dual-agent coordination**: Single conversation interface with both Discovery and Matching agents
+- **Intelligent routing**: Automatic agent selection based on user intent detection
+- **Intent keywords**: 'score', 'analyze', 'match', 'fit', 'rate', 'evaluate', 'assess', 'rank', 'priority', 'compare'
+- **Message merging**: Chronologically combined messages from both agents
+- **Context-aware**: Routes to Matching Agent when scoring keywords detected + saved jobs exist
+- **Graceful fallbacks**: Handles missing profile or no saved jobs scenarios
 - Built with AI Elements (Vercel's pre-built AI UI components)
 - Streaming responses with visible tool execution
 - Reasoning tokens displayed as collapsible blocks
@@ -88,6 +94,7 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - **localStorage-based**: No database or authentication required
 - **User Profile**: Skills, salary range, preferences, scoring weights
 - **Jobs**: Discovered jobs with optional scores and application status
+- **Auto-refresh**: State updates after agent actions complete
 - **SSR-safe**: All storage utilities check for browser environment
 
 ## Custom Tools Implementation
@@ -229,11 +236,15 @@ ADZUNA_API_KEY          # Job board search
 
 ## Technical Achievements
 
-### 1. Multi-Agent Architecture
+### 1. Multi-Agent Architecture with Unified Interface
 - Designed two specialized agents with distinct responsibilities
-- Implemented indirect coordination via shared state (localStorage)
+- Implemented **dual `useChat` hooks** in single component for seamless coordination
+- **Intelligent routing system** with keyword-based intent detection
+- **Message stream merging** using React.useMemo for chronological display
+- Indirect coordination via shared state (localStorage)
 - Demonstrated autonomous decision-making within each agent's domain
 - Clear separation of concerns (discovery vs. analysis)
+- Graceful handling of edge cases (no profile, no saved jobs)
 
 ### 2. Tool-Calling LLMs
 - Integrated MCP protocol for dynamic tool loading
@@ -365,13 +376,15 @@ capstone-job-search-score/
 │   │       ├── score-jobs.ts
 │   │       └── index.ts
 │   ├── ai-elements/                    # AI SDK UI components
-│   ├── chat/                           # Chat interface (future)
+│   ├── chat/
+│   │   └── chat-assistant.tsx          # Multi-agent chat interface
 │   └── ui/                             # shadcn/ui components
 ├── lib/
 │   ├── mcp/                            # MCP client for Firecrawl
 │   ├── storage/
 │   │   ├── jobs.ts                     # Job storage utilities
-│   │   └── profile.ts                  # Profile storage utilities
+│   │   ├── profile.ts                  # Profile storage utilities
+│   │   └── index.ts                    # Storage exports barrel
 │   └── utils.ts
 ├── types/
 │   ├── job.ts                          # Job interface + utilities
@@ -384,6 +397,60 @@ capstone-job-search-score/
 ├── package.json
 └── .env.local                          # API keys (not in repo)
 ```
+
+## Implementation Highlights
+
+### Multi-Agent Chat Interface (`components/chat/chat-assistant.tsx`)
+
+**Dual useChat Hooks:**
+```typescript
+// Discovery Agent
+const discoveryChat = useChat({
+  transport: api ? new DefaultChatTransport({ api }) : undefined,
+  onFinish: () => setSavedJobs(getJobs()),
+});
+
+// Matching Agent
+const matchingChat = useChat({
+  transport: new DefaultChatTransport({
+    api: '/api/match',
+    body: { jobs: savedJobs, profile: userProfile },
+  }),
+  onFinish: () => setSavedJobs(getJobs()),
+});
+```
+
+**Intelligent Intent Detection:**
+```typescript
+const detectScoringIntent = (text: string): boolean => {
+  const keywords = ['score', 'analyze', 'match', 'fit', 'rate',
+                    'evaluate', 'assess', 'rank', 'priority', 'compare'];
+  return keywords.some(keyword => text.toLowerCase().includes(keyword));
+};
+```
+
+**Message Stream Merging:**
+```typescript
+const allRawMessages = React.useMemo(() => {
+  const discovery = discoveryChat.messages.map(msg => ({
+    ...msg, agentSource: 'discovery' as const
+  }));
+  const matching = matchingChat.messages.map(msg => ({
+    ...msg, agentSource: 'matching' as const
+  }));
+  return [...discovery, ...matching].sort((a, b) =>
+    a.id.localeCompare(b.id)
+  );
+}, [discoveryChat.messages, matchingChat.messages]);
+```
+
+**Smart Routing Logic:**
+- Scoring intent + saved jobs + profile → Matching Agent
+- Scoring intent + no saved jobs → Discovery Agent (helpful message)
+- Scoring intent + no profile → Discovery Agent (profile creation prompt)
+- All other queries → Discovery Agent (default)
+
+**Lines of Code:** ~140 net lines added for full multi-agent coordination
 
 ## Credits
 

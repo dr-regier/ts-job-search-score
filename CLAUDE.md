@@ -298,11 +298,17 @@ Display tool execution states using AI Elements:
 
 ### Chat Architecture
 
-- **Frontend**: `ChatAssistant` component uses `useChat` hook from `@ai-sdk/react`
-- **API Route**: Validates messages, converts UIMessages to ModelMessages using `convertToModelMessages()`, streams response via `toUIMessageStreamResponse()`
+- **Frontend**: `ChatAssistant` component (`components/chat/chat-assistant.tsx`) with dual-agent support
+- **Multi-Agent Coordination**: Two `useChat` hooks (Discovery + Matching) merged into single conversation
+- **Intelligent Routing**: Automatic agent selection based on user intent detection
+- **API Routes**:
+  - `/api/chat` - Job Discovery Agent
+  - `/api/match` - Job Matching Agent (receives jobs and profile in body)
+- **Message Merging**: `React.useMemo` combines messages from both agents chronologically
 - **Message Format**: Messages have `parts` array with typed parts (text, tool, etc.), NOT simple `content` field
 - **Sending Messages**: MUST use `sendMessage({ text: "message" })` format - string format does NOT work
-- **Streaming**: Official `useChat` hook handles streaming automatically
+- **Streaming**: Official `useChat` hook handles streaming automatically for both agents
+- **State Management**: localStorage integration for jobs and profile, auto-refresh after agent actions
 - **Error Handling**: Graceful fallbacks for API failures via `status` monitoring
 
 ### UI Components
