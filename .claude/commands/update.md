@@ -21,7 +21,8 @@ Review the codebase for recent changes and update the project documentation file
    - New API integrations or services
 
 ## Guidelines:
-- Be comprehensive but concise
+- Be comprehensive and concise.
+- Only make updates where necessary and do not be too verbose. 
 - Maintain the existing tone and structure of each file
 - Don't remove important existing information - enhance and update it
 - Focus on technical accuracy

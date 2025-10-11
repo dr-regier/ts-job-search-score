@@ -32,7 +32,7 @@ This is a TypeScript Next.js 15 application with AI-powered web scraping capabil
 ### Key Directories
 
 - `app/` - Next.js App Router pages and API routes
-- `app/api/agent-with-mcp-tools/` - Main agent endpoint with MCP Firecrawl tools
+- `app/api/chat/` - Main agent endpoint with MCP Firecrawl tools, Adzuna API search tool, websearch tool
 - `components/chat/` - Chat interface components
 - `components/ai-elements/` - Vercel AI Elements components
 - `components/agent/` - Agent configuration (system prompts)
