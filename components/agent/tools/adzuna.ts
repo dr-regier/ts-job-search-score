@@ -111,7 +111,7 @@ export const searchAdzunaJobs = {
 
     // Get API credentials from environment
     const appId = process.env.ADZUNA_APP_ID;
-    const apiKey = process.env.ADZUNA_API_KEY;
+    const apiKey = process.env.ADZUNA_APP_KEY;
 
     if (!appId || !apiKey) {
       console.error("❌ Adzuna API credentials not found");
