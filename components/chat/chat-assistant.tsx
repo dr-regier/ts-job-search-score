@@ -198,6 +198,10 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
   // Determine which agent to use based on current context
   const [activeAgent, setActiveAgent] = useState<'discovery' | 'matching'>('discovery');
 
+  // Track message order across both agents using a ref
+  const messageOrderRef = useRef<Map<string, number>>(new Map());
+  const nextOrderRef = useRef(0);
+
   // Merge messages from both agents chronologically
   const allRawMessages = React.useMemo(() => {
     const discovery = discoveryChat.messages.map(msg => ({
@@ -209,11 +213,18 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
       agentSource: 'matching' as const
     }));
 
-    // Combine and sort by creation time (messages have IDs that are chronologically ordered)
+    // Assign order numbers to new messages
+    [...discovery, ...matching].forEach(msg => {
+      if (!messageOrderRef.current.has(msg.id)) {
+        messageOrderRef.current.set(msg.id, nextOrderRef.current++);
+      }
+    });
+
+    // Combine and sort by insertion order
     return [...discovery, ...matching].sort((a, b) => {
-      // Messages are added chronologically, so we can rely on array order
-      // But we'll use a simple timestamp comparison if needed
-      return a.id.localeCompare(b.id);
+      const orderA = messageOrderRef.current.get(a.id) ?? 0;
+      const orderB = messageOrderRef.current.get(b.id) ?? 0;
+      return orderA - orderB;
     });
   }, [discoveryChat.messages, matchingChat.messages]);
 
