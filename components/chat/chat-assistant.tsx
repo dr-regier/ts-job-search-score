@@ -3,7 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type ToolUIPart } from "ai";
 import React, { useState, useEffect, useRef, memo } from "react";
-import { getJobs, getProfile } from "@/lib/storage";
+import { getJobs, getProfile, addJobs, updateJobsWithScores } from "@/lib/storage";
 import type { Job } from "@/types/job";
 import type { UserProfile } from "@/types/profile";
 import {
@@ -181,12 +181,23 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
   });
 
   // Matching Agent (Job Matching/Scoring)
+  // Use a custom fetch to inject current savedJobs and userProfile
   const matchingChat = useChat({
     transport: new DefaultChatTransport({
       api: '/api/match',
-      body: {
-        jobs: savedJobs,
-        profile: userProfile,
+      fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+        // Inject current savedJobs and userProfile into request body
+        const body = JSON.parse(init?.body as string || '{}');
+        const enhancedBody = {
+          ...body,
+          jobs: getJobs(),        // Get fresh jobs from localStorage
+          profile: getProfile(),  // Get fresh profile from localStorage
+        };
+
+        return fetch(input, {
+          ...init,
+          body: JSON.stringify(enhancedBody),
+        });
       },
     }),
     onFinish: () => {
@@ -201,6 +212,9 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
   // Track message order across both agents using a ref
   const messageOrderRef = useRef<Map<string, number>>(new Map());
   const nextOrderRef = useRef(0);
+
+  // Track which tool calls have been processed to avoid duplicates
+  const processedToolCallsRef = useRef<Set<string>>(new Set());
 
   // Merge messages from both agents chronologically
   const allRawMessages = React.useMemo(() => {
@@ -284,6 +298,69 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
   // Use debounced messages for rendering
   const messages = debouncedMessages;
 
+  // Handle tool results (save jobs, score jobs)
+  useEffect(() => {
+    // Process tool results from both agents
+    const allMessages = [...discoveryChat.messages, ...matchingChat.messages];
+
+    allMessages.forEach((message) => {
+      if (message.role !== 'assistant') return;
+
+      const parts = (message as any).parts || [];
+
+      parts.forEach((part: any) => {
+        // Check both part.result and part.output (AI SDK uses different fields)
+        const toolOutput = part.result || part.output;
+
+        // Check if this is a tool result we haven't processed yet
+        if (part.type?.startsWith('tool-') && toolOutput) {
+          // Create unique ID for this tool call
+          const toolCallId = part.toolCallId || part.id || `${message.id}-${part.type}`;
+
+          // Skip if already processed
+          if (processedToolCallsRef.current.has(toolCallId)) {
+            return;
+          }
+
+          // Mark as processed
+          processedToolCallsRef.current.add(toolCallId);
+
+          // Handle saveJobsToProfile tool result
+          if (toolOutput.action === 'saved' && toolOutput.savedJobs) {
+            console.log('💾 Processing save tool result:', toolOutput.count, 'jobs');
+
+            // Add jobs to localStorage
+            const success = addJobs(toolOutput.savedJobs);
+
+            if (success) {
+              console.log('✅ Successfully saved', toolOutput.count, 'jobs to localStorage');
+              // Reload saved jobs state
+              setSavedJobs(getJobs());
+            } else {
+              console.error('❌ Failed to save jobs to localStorage');
+            }
+          }
+
+          // Handle scoreJobsTool result
+          if (toolOutput.action === 'scored' && toolOutput.scoredJobs) {
+            console.log('📊 Processing score tool result:', toolOutput.scoredJobs.length, 'jobs');
+
+            // Update jobs with scores in localStorage
+            const success = updateJobsWithScores(toolOutput.scoredJobs);
+
+            if (success) {
+              console.log('✅ Successfully updated', toolOutput.scoredJobs.length, 'jobs with scores');
+              // Reload saved jobs state
+              setSavedJobs(getJobs());
+            } else {
+              console.error('❌ Failed to update jobs with scores');
+            }
+          }
+        }
+      });
+    });
+  }, [discoveryChat.messages, matchingChat.messages]);
+
   /**
    * Detects if user message indicates scoring/matching intent
    */
@@ -322,23 +399,38 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
     // Determine which agent to use based on intent
     const wantsScoring = detectScoringIntent(messageText);
 
+    console.log('\n🎯 === ROUTING DECISION ===');
+    console.log('Message:', messageText);
+    console.log('Scoring intent detected:', wantsScoring);
+    console.log('Saved jobs count:', savedJobs.length);
+    console.log('Has profile:', !!userProfile);
+    console.log('Profile name:', userProfile?.name || 'N/A');
+
     if (wantsScoring && savedJobs.length > 0) {
       // User wants scoring and has saved jobs -> use Matching Agent
       if (!userProfile) {
         // No profile - send to discovery agent with original message
+        console.log('❌ Routing to DISCOVERY: Scoring intent but NO PROFILE');
+        console.log('Endpoint: POST /api/chat\n');
         setActiveAgent('discovery');
         discoveryChat.sendMessage({ text: messageText });
       } else {
         // Has profile and saved jobs - use matching agent
+        console.log('✅ Routing to MATCHING: Scoring intent + saved jobs + profile');
+        console.log('Endpoint: POST /api/match\n');
         setActiveAgent('matching');
         matchingChat.sendMessage({ text: messageText });
       }
     } else if (wantsScoring && savedJobs.length === 0) {
       // User wants scoring but has no saved jobs - send original message to discovery agent
+      console.log('❌ Routing to DISCOVERY: Scoring intent but NO SAVED JOBS');
+      console.log('Endpoint: POST /api/chat\n');
       setActiveAgent('discovery');
       discoveryChat.sendMessage({ text: messageText });
     } else {
       // Default to Discovery Agent for job search and other queries
+      console.log('❌ Routing to DISCOVERY: Default (no scoring intent)');
+      console.log('Endpoint: POST /api/chat\n');
       setActiveAgent('discovery');
       discoveryChat.sendMessage({ text: messageText });
     }
