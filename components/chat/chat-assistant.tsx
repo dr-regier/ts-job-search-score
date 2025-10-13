@@ -325,22 +325,18 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
     if (wantsScoring && savedJobs.length > 0) {
       // User wants scoring and has saved jobs -> use Matching Agent
       if (!userProfile) {
-        // No profile - send to discovery agent to handle this gracefully
-        discoveryChat.sendMessage({
-          text: "I'd like to score jobs, but I don't have a profile yet. Can you help me create one?"
-        });
+        // No profile - send to discovery agent with original message
         setActiveAgent('discovery');
+        discoveryChat.sendMessage({ text: messageText });
       } else {
         // Has profile and saved jobs - use matching agent
         setActiveAgent('matching');
         matchingChat.sendMessage({ text: messageText });
       }
     } else if (wantsScoring && savedJobs.length === 0) {
-      // User wants scoring but has no saved jobs - explain this
-      discoveryChat.sendMessage({
-        text: "I'd like to score jobs, but I haven't saved any yet. Can you help me find and save some jobs first?"
-      });
+      // User wants scoring but has no saved jobs - send original message to discovery agent
       setActiveAgent('discovery');
+      discoveryChat.sendMessage({ text: messageText });
     } else {
       // Default to Discovery Agent for job search and other queries
       setActiveAgent('discovery');
