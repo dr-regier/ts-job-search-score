@@ -19,12 +19,18 @@ export async function POST(request: NextRequest) {
   try {
     const { messages, jobs, profile } = await request.json();
 
+    console.log('\n' + '═'.repeat(60));
+    console.log('📊 JOB MATCHING AGENT ACTIVATED');
+    console.log('═'.repeat(60));
+
     // Validate required fields
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
+      console.log('❌ Validation failed: Messages array is required');
       return new Response("Messages array is required", { status: 400 });
     }
 
     if (!profile) {
+      console.log('❌ Validation failed: User profile is required');
       return new Response(
         "User profile is required for job matching. Please complete your profile first.",
         { status: 400 }
@@ -32,11 +38,17 @@ export async function POST(request: NextRequest) {
     }
 
     if (!jobs || !Array.isArray(jobs) || jobs.length === 0) {
+      console.log('❌ Validation failed: Jobs array is required');
       return new Response(
         "Jobs array is required. Please save some jobs before requesting scoring.",
         { status: 400 }
       );
     }
+
+    console.log(`✅ Validation passed:`);
+    console.log(`   - Profile: ${profile.name || 'Anonymous'}`);
+    console.log(`   - Jobs to analyze: ${jobs.length}`);
+    console.log(`   - User messages: ${messages.length}`);
 
     const modelMessages = convertToModelMessages(messages);
 
@@ -116,9 +128,13 @@ ${JSON.stringify(jobs, null, 2)}
 
 Analyze each job against the user's profile. Calculate weighted scores based on the user's scoring weights. Provide detailed reasoning for each score. Identify gaps honestly. Assign priority levels. Return results using the scoreJobsTool.`;
 
-    console.log(
-      `📊 Matching Agent analyzing ${jobs.length} job(s) against user profile...`
-    );
+    console.log('\n' + '─'.repeat(60));
+    console.log(`📊 Starting job analysis:`);
+    console.log(`   - Analyzing ${jobs.length} job(s) against user profile`);
+    console.log(`   - Scoring weights: Salary ${profile.scoringWeights?.salaryMatch || 30}%, Location ${profile.scoringWeights?.locationFit || 20}%, Company ${profile.scoringWeights?.companyAppeal || 25}%, Role ${profile.scoringWeights?.roleMatch || 15}%, Requirements ${profile.scoringWeights?.requirementsFit || 10}%`);
+    console.log(`   - Model: GPT-5 with medium reasoning effort`);
+    console.log(`   - Max steps: 5`);
+    console.log('─'.repeat(60) + '\n');
 
     const result = streamText({
       model: openai("gpt-5"),
@@ -135,9 +151,14 @@ Analyze each job against the user's profile. Calculate weighted scores based on 
       },
     });
 
+    console.log('✅ Matching Agent response stream started successfully\n');
     return result.toUIMessageStreamResponse();
   } catch (error) {
-    console.error("💥 Job Matching Agent API error:", error);
+    console.error('\n' + '═'.repeat(60));
+    console.error("💥 JOB MATCHING AGENT ERROR");
+    console.error('═'.repeat(60));
+    console.error(error);
+    console.error('═'.repeat(60) + '\n');
     return new Response("Failed to generate response", { status: 500 });
   }
 }
