@@ -7,7 +7,7 @@ export default function Home() {
       <Header />
 
       <div className="flex-1 overflow-hidden">
-        <ChatAssistant api="/api/chat" />
+        <ChatAssistant />
       </div>
     </div>
   );
