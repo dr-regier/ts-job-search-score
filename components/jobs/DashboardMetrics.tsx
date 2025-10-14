@@ -51,70 +51,47 @@ export function DashboardMetrics({ jobs }: DashboardMetricsProps) {
     {
       label: "Total Jobs",
       value: totalJobs.toLocaleString(),
-      color: "text-blue-600",
       icon: BarChart3,
-      bg: "bg-blue-50",
     },
     {
       label: "High Priority",
       value: highPriorityCount.toLocaleString(),
-      color: "text-green-600",
       icon: TrendingUp,
-      bg: "bg-green-50",
     },
     {
       label: "Medium Priority",
       value: mediumPriorityCount.toLocaleString(),
-      color: "text-yellow-600",
       icon: TrendingDown,
-      bg: "bg-yellow-50",
     },
     {
       label: "Avg Score",
       value: averageScore > 0 ? averageScore.toFixed(1) : "N/A",
-      color: "text-purple-600",
       icon: Star,
-      bg: "bg-purple-50",
     },
     {
       label: "Last Updated",
       value: getLastUpdated(),
-      color: "text-gray-600",
       icon: Clock,
-      bg: "bg-gray-50",
     },
   ];
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-6">
-        <BarChart3 className="w-6 h-6 text-gray-700" />
-        <h2 className="text-2xl font-bold text-gray-900">Dashboard Metrics</h2>
-      </div>
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">Overview</h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {metrics.map((metric, index) => (
+        {metrics.map((metric) => (
           <div
             key={metric.label}
-            className={`
-              bg-white rounded-xl shadow-md hover:shadow-lg
-              transition-all duration-300 p-6
-              border border-gray-200
-              ${metric.bg}
-            `}
-            style={{
-              animation: `fade-in 0.5s ease-out forwards`,
-              animationDelay: `${index * 100}ms`,
-              opacity: 0,
-            }}
+            className="bg-white border border-gray-200 rounded-lg p-4"
           >
             <div className="flex items-center justify-between mb-2">
-              <metric.icon className={`w-5 h-5 ${metric.color}`} />
+              <metric.icon className="w-4 h-4 text-gray-500" />
             </div>
-            <div className={`text-5xl font-bold mb-2 ${metric.color}`}>
+            <div className="text-3xl font-semibold text-gray-900 mb-1">
               {metric.value}
             </div>
-            <div className="text-sm text-gray-600 uppercase tracking-wide font-medium">
+            <div className="text-sm text-gray-600">
               {metric.label}
             </div>
           </div>

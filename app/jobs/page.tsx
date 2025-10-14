@@ -42,12 +42,11 @@ export default function JobsPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen bg-background">
         <Header />
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           <div className="flex items-center justify-center h-96">
             <div className="text-center">
-              <div className="text-6xl mb-4 animate-bounce">⏳</div>
               <p className="text-gray-600 text-lg">Loading your jobs...</p>
             </div>
           </div>
@@ -57,12 +56,7 @@ export default function JobsPage() {
   }
 
   return (
-    <div
-      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100"
-      style={{
-        animation: "fade-in 0.5s ease-out forwards",
-      }}
-    >
+    <div className="min-h-screen bg-background">
       <Header />
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -78,10 +72,7 @@ export default function JobsPage() {
 
           {/* Jobs Table */}
           <div>
-            <div className="flex items-center gap-2 mb-6">
-              <div className="text-2xl">💼</div>
-              <h2 className="text-2xl font-bold text-gray-900">Your Jobs</h2>
-            </div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Jobs</h2>
             <JobTable jobs={jobs} onStatusUpdate={handleStatusUpdate} />
           </div>
         </div>
