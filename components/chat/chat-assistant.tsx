@@ -419,6 +419,9 @@ export default function ChatAssistant({ api }: ChatAssistantProps) {
         console.log('✅ Routing to MATCHING: Scoring intent + saved jobs + profile');
         console.log('Endpoint: POST /api/match\n');
         setActiveAgent('matching');
+        // Clear matching chat history before sending new message
+        // (Prevents reasoning tokens from previous responses being sent back)
+        matchingChat.setMessages([]);
         matchingChat.sendMessage({ text: messageText });
       }
     } else if (wantsScoring && savedJobs.length === 0) {
