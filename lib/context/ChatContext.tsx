@@ -31,6 +31,9 @@ interface ChatContextType {
 
   // Helper method for sending messages with intelligent routing
   handleSendMessage: (messageText: string) => void;
+
+  // Clear chat history and reset to fresh state
+  clearChat: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -190,6 +193,28 @@ export function ChatProvider({
   };
 
   /**
+   * Clear all chat history and reset to fresh state
+   * Preserves saved jobs and profile data
+   */
+  const clearChat = () => {
+    // Clear both agent message histories
+    discoveryChat.setMessages([]);
+    matchingChat.setMessages([]);
+
+    // Reset message ordering
+    messageOrderRef.current.clear();
+    nextOrderRef.current = 0;
+
+    // Clear processed tool calls tracking
+    processedToolCallsRef.current.clear();
+
+    // Reset to discovery agent
+    setActiveAgent('discovery');
+
+    console.log('🔄 Chat cleared - starting fresh conversation');
+  };
+
+  /**
    * Handle sending a message with intelligent routing between agents
    */
   const handleSendMessage = (messageText: string) => {
@@ -249,6 +274,7 @@ export function ChatProvider({
     nextOrderRef,
     processedToolCallsRef,
     handleSendMessage,
+    clearChat,
   };
 
   return (
