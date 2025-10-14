@@ -19,6 +19,12 @@ interface JobTableProps {
 }
 
 export function JobTable({ jobs, onStatusUpdate }: JobTableProps) {
+  console.log('JobTable received jobs:', jobs);
+  console.log('Jobs count:', jobs.length);
+  if (jobs.length > 0) {
+    console.log('Sample job structure:', jobs[0]);
+  }
+
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("score-desc");
@@ -60,6 +66,9 @@ export function JobTable({ jobs, onStatusUpdate }: JobTableProps) {
           return 0;
       }
     });
+
+    console.log('Filtered jobs:', filtered);
+    console.log('Filtered count:', filtered.length);
 
     return filtered;
   }, [jobs, filterPriority, filterStatus, sortBy]);
@@ -215,11 +224,6 @@ export function JobTable({ jobs, onStatusUpdate }: JobTableProps) {
                 <tr
                   key={job.id}
                   className="border-t border-gray-200 hover:bg-blue-50 transition-colors cursor-pointer"
-                  style={{
-                    animation: `fade-in 0.3s ease-out forwards`,
-                    animationDelay: `${index * 50}ms`,
-                    opacity: 0,
-                  }}
                 >
                   <td className="px-6 py-4">
                     <div className="font-semibold text-gray-900 text-sm">
