@@ -6,7 +6,7 @@ import { HeroSection } from "@/components/jobs/HeroSection";
 import { ActionCards } from "@/components/jobs/ActionCards";
 import { DashboardMetrics } from "@/components/jobs/DashboardMetrics";
 import { JobTable } from "@/components/jobs/JobTable";
-import { getJobs, updateJobStatus } from "@/lib/storage/jobs";
+import { getJobs, updateJobStatus, deleteJob } from "@/lib/storage/jobs";
 import type { Job, ApplicationStatus } from "@/types/job";
 
 export default function JobsPage() {
@@ -36,6 +36,14 @@ export default function JobsPage() {
     const success = updateJobStatus(jobId, status);
     if (success) {
       // Reload jobs after status update
+      setJobs(getJobs());
+    }
+  };
+
+  const handleJobRemove = (jobId: string) => {
+    const success = deleteJob(jobId);
+    if (success) {
+      // Reload jobs after removal
       setJobs(getJobs());
     }
   };
@@ -73,7 +81,11 @@ export default function JobsPage() {
           {/* Jobs Table */}
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Jobs</h2>
-            <JobTable jobs={jobs} onStatusUpdate={handleStatusUpdate} />
+            <JobTable
+              jobs={jobs}
+              onStatusUpdate={handleStatusUpdate}
+              onJobRemove={handleJobRemove}
+            />
           </div>
         </div>
       </div>

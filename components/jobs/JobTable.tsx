@@ -10,15 +10,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ExternalLink, Send, Briefcase } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { ExternalLink, Send, Briefcase, Trash2 } from "lucide-react";
 import type { Job, ApplicationStatus } from "@/types/job";
 
 interface JobTableProps {
   jobs: Job[];
   onStatusUpdate: (jobId: string, status: ApplicationStatus) => void;
+  onJobRemove: (jobId: string) => void;
 }
 
-export function JobTable({ jobs, onStatusUpdate }: JobTableProps) {
+export function JobTable({ jobs, onStatusUpdate, onJobRemove }: JobTableProps) {
   console.log('JobTable received jobs:', jobs);
   console.log('Jobs count:', jobs.length);
   if (jobs.length > 0) {
@@ -285,6 +297,35 @@ export function JobTable({ jobs, onStatusUpdate }: JobTableProps) {
                           <ExternalLink className="w-4 h-4" />
                         </a>
                       </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="hover:bg-red-50 hover:border-red-300 hover:text-red-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Remove this job?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently remove "{job.title}" at {job.company} from your saved jobs.
+                              This action cannot be undone.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => onJobRemove(job.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Remove Job
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                       <Button
                         size="sm"
                         className="bg-green-600 hover:bg-green-700 text-white"
