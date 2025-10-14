@@ -26,8 +26,10 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
   - Model Context Protocol (MCP) with Firecrawl for web scraping
   - Adzuna API for job board searches
 - **UI**: shadcn/ui (Radix UI + Tailwind CSS v4), AI Elements
+- **Forms**: react-hook-form 7.65+ with @hookform/resolvers and Zod validation
 - **State Management**: localStorage (no database/authentication)
 - **Build Tools**: Turbopack, pnpm
+- **Icons**: Lucide React
 
 ### Multi-Agent System
 
@@ -90,9 +92,58 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - Reasoning tokens displayed as collapsible blocks
 - Natural language interaction for all operations
 
-### 5. Data Persistence
+### 5. Profile Management UI
+- **Form-based profile creation** (`/profile`):
+  - Comprehensive ProfileForm component with react-hook-form + Zod validation
+  - Fields: Name, Professional Background (min 10 chars), Skills (comma-separated)
+  - Salary range with validation (min < max)
+  - Preferred locations and job preferences
+  - Deal breakers (textarea)
+- **Interactive ScoringWeights component**:
+  - 5 slider inputs for scoring categories (Salary, Location, Company, Role, Requirements)
+  - Real-time validation (must sum to 100%)
+  - Visual indicator: green when valid, red when invalid
+  - Range: 0-100, step: 5
+- **Loads existing profile** from localStorage with pre-population
+- **Success messages** and indicators if profile was created via chat
+- **createdVia** field tracks profile origin ("chat" | "form")
+
+### 6. Jobs Dashboard
+- **Premium dashboard UI** (`/jobs`) with professional design quality:
+  - **HeroSection**: Animated gradient banner (blue → purple → blue)
+  - **ActionCards**: 4 quick-action cards with hover effects and navigation
+  - **DashboardMetrics**: 5 metric cards with real-time calculations
+    - Total Jobs, High Priority, Medium Priority, Average Score, Last Updated
+    - Color-coded numbers with icons
+    - Staggered fade-in animations
+  - **JobTable**: Advanced table with filtering and sorting
+    - Filters: Priority (All/High/Medium/Low), Status (All/Saved/Applied/Interviewing/Offer/Rejected)
+    - Sorting: Score (High/Low), Date (Newest/Oldest), Company (A-Z)
+    - Large color-coded score display per job
+    - Priority badges (pill-shaped, color-coded)
+    - Status dropdown per row with localStorage sync
+    - Action buttons: View (external link), Apply (external link)
+    - Empty state with helpful message and CTA
+    - Results counter
+  - **ScoreBreakdown component**: Circular score indicator with animated progress bars
+  - **JobCard component**: Premium card design with saved/unsaved states
+- **Custom animations** in `app/globals.css`:
+  - gradient-x (3s ease infinite)
+  - fade-in (0.5s ease-out)
+  - slide-up (0.5s ease-out)
+  - pulse-soft (2s ease-in-out infinite)
+- **Responsive design**: Mobile-first with breakpoints for tablet and desktop
+
+### 7. Navigation & Layout
+- **Header component** with unified navigation
+- Links to Chat (`/`), Jobs (`/jobs`), Profile (`/profile`)
+- Active page highlighting
+- Icons: Home (Briefcase), Jobs (Briefcase), Profile (User)
+- Consistent across all pages
+
+### 8. Data Persistence
 - **localStorage-based**: No database or authentication required
-- **User Profile**: Skills, salary range, preferences, scoring weights
+- **User Profile**: Skills, salary range, preferences, scoring weights, createdVia
 - **Jobs**: Discovered jobs with optional scores and application status
 - **Auto-refresh**: State updates after agent actions complete
 - **SSR-safe**: All storage utilities check for browser environment
@@ -227,12 +278,15 @@ ADZUNA_API_KEY          # Job board search
 - `ai` (5.0.44+): AI SDK with tool calling and streaming
 - `@ai-sdk/openai`, `@ai-sdk/react`: OpenAI integration and React hooks
 - `@modelcontextprotocol/sdk`: MCP client for Firecrawl
+- `react-hook-form` (7.65+): Form state management with validation
+- `@hookform/resolvers`: Integration between react-hook-form and validation libraries
 - `uuid`: Unique job ID generation
-- `zod`: Schema validation for tool inputs
+- `zod` (4.1.11): Schema validation for tool inputs and forms
 - `next` (15.5.3): React framework with App Router
 - `react` (19.1.0): UI library
-- `tailwindcss` (v4): Styling
+- `tailwindcss` (v4): Styling with custom animations
 - `shadcn/ui`: Component library (Radix UI primitives)
+- `lucide-react`: Icon library
 
 ## Technical Achievements
 
@@ -281,6 +335,12 @@ ADZUNA_API_KEY          # Job board search
 - Streaming responses with real-time feedback
 - Collapsible reasoning blocks
 - Natural language commands throughout
+- **Form-based profile management** with react-hook-form + Zod validation
+- **Premium dashboard design** with animated components and professional polish
+- **Interactive filtering and sorting** with real-time updates
+- **Status tracking** with dropdown selects and localStorage sync
+- **Custom animations** (gradient-x, fade-in, slide-up, pulse-soft)
+- **Responsive design** with mobile-first approach
 
 ## Learning Outcomes
 
@@ -310,11 +370,12 @@ ADZUNA_API_KEY          # Job board search
 
 ## Future Enhancements
 
-### Near-term (Week 3)
-- Profile form UI for manual editing
-- Jobs dashboard with table view
-- Job detail pages with full analysis
-- Application status tracking UI
+### Completed
+- ✅ Profile form UI for manual editing
+- ✅ Jobs dashboard with table view
+- ✅ Application status tracking UI
+- ✅ Filtering and sorting capabilities
+- ✅ Real-time metrics display
 
 ### Stretch Goals
 - Supervisor agent for full orchestration
@@ -363,7 +424,12 @@ capstone-job-search-score/
 │   ├── api/
 │   │   ├── chat/route.ts              # Job Discovery Agent
 │   │   └── match/route.ts             # Job Matching Agent
-│   └── page.tsx                        # Landing page
+│   ├── jobs/
+│   │   └── page.tsx                    # Jobs Dashboard page
+│   ├── profile/
+│   │   └── page.tsx                    # Profile management page
+│   ├── page.tsx                        # Landing page (chat)
+│   └── globals.css                     # Global styles with custom animations
 ├── components/
 │   ├── agent/
 │   │   ├── prompts/
@@ -378,6 +444,18 @@ capstone-job-search-score/
 │   ├── ai-elements/                    # AI SDK UI components
 │   ├── chat/
 │   │   └── chat-assistant.tsx          # Multi-agent chat interface
+│   ├── jobs/                           # Jobs Dashboard components
+│   │   ├── ActionCards.tsx
+│   │   ├── DashboardMetrics.tsx
+│   │   ├── HeroSection.tsx
+│   │   ├── JobCard.tsx
+│   │   ├── JobTable.tsx
+│   │   └── ScoreBreakdown.tsx
+│   ├── layout/                         # Layout components
+│   │   └── Header.tsx                  # Navigation header
+│   ├── profile/                        # Profile management components
+│   │   ├── ProfileForm.tsx
+│   │   └── ScoringWeights.tsx
 │   └── ui/                             # shadcn/ui components
 ├── lib/
 │   ├── mcp/                            # MCP client for Firecrawl

@@ -4,6 +4,7 @@ An intelligent job search and matching system powered by multi-agent AI architec
 
 ## Features
 
+### Multi-Agent AI System
 - **Unified Multi-Agent Chat** - Single conversation interface with intelligent routing:
   - **Job Discovery Agent** - Autonomously searches jobs across company career pages and job boards
   - **Job Matching Agent** - Analyzes job fit with intelligent scoring and gap identification
@@ -13,9 +14,28 @@ An intelligent job search and matching system powered by multi-agent AI architec
 - **Intelligent Job Scoring** - Weighted scoring system (0-100) with detailed reasoning and gap analysis
 - **Natural Language Commands** - Find, save, and score jobs through conversation
 - **AI Elements Components** - Rich UI components for tool calls, reasoning, and structured outputs
+
+### User Interface
+- **Profile Management** (`/profile`) - Create and edit your professional profile:
+  - Comprehensive form with validation (name, background, skills, salary, locations)
+  - Interactive scoring weight sliders (5 categories, must sum to 100%)
+  - Real-time validation and visual feedback
+  - Loads and pre-populates existing profile data
+- **Jobs Dashboard** (`/jobs`) - Premium dashboard for job tracking and management:
+  - Real-time metrics (total jobs, priority counts, average score, last updated)
+  - Advanced filtering (by priority and status)
+  - Multiple sorting options (score, date, company)
+  - Status tracking per job (Saved → Applied → Interviewing → Offer/Rejected)
+  - Animated UI with professional design quality
+  - Empty states with helpful guidance
+- **Navigation** - Unified header with easy access to Chat, Jobs, and Profile pages
+
+### Technical Features
 - **localStorage Persistence** - Save jobs and profiles without needing a database
 - **TypeScript** - Full type safety across the entire application
-- **shadcn/ui Design System** - Clean, modern UI components
+- **shadcn/ui Design System** - Clean, modern UI components with custom animations
+- **Responsive Design** - Mobile-first approach that scales beautifully to desktop
+- **Form Validation** - react-hook-form with Zod schemas for type-safe forms
 
 ## Setup
 
@@ -48,21 +68,40 @@ An intelligent job search and matching system powered by multi-agent AI architec
 
 ## Usage
 
-1. **Start a search** - Tell the agent what jobs you're looking for:
-   - "Find AI engineering jobs at Google and Microsoft"
-   - "Search for remote product manager roles in fintech"
-   - "Show me senior software engineer positions in San Francisco"
+### 1. Create Your Profile
+Navigate to `/profile` or click "Profile" in the header:
+- Fill out your professional information
+- Set your salary range and preferred locations
+- Add your skills and job preferences
+- Configure scoring weights with interactive sliders (must sum to 100%)
+- Save your profile
 
-2. **Save interesting jobs** - The agent finds jobs temporarily. Explicitly save the ones you like:
-   - "Save the top 5 jobs"
-   - "Save all remote positions"
-   - "Save jobs 2, 5, and 12"
+### 2. Discover Jobs (Chat Interface)
+Go to the chat interface (`/`) and tell the agent what you're looking for:
+- "Find AI engineering jobs at Google and Microsoft"
+- "Search for remote product manager roles in fintech"
+- "Show me senior software engineer positions in San Francisco"
 
-3. **Score your saved jobs** - Get detailed fit analysis:
-   - "Score my saved jobs"
-   - The agent analyzes each job against your profile with reasoning and gap identification
+### 3. Save Interesting Jobs
+The agent finds jobs temporarily. Explicitly save the ones you like:
+- "Save the top 5 jobs"
+- "Save all remote positions"
+- "Save jobs 2, 5, and 12"
 
-4. **Track your applications** - Manage job status and notes as you apply
+### 4. Score Your Saved Jobs
+Get detailed fit analysis in the same conversation:
+- "Score my saved jobs"
+- The agent analyzes each job against your profile with reasoning and gap identification
+- Scores appear with detailed breakdowns and missing qualifications
+
+### 5. Manage Your Applications
+Navigate to the Jobs Dashboard (`/jobs`):
+- View all saved jobs with scores and priorities
+- Filter by priority (High/Medium/Low) or status
+- Sort by score, date, or company
+- Update job status as you progress (Saved → Applied → Interviewing → Offer/Rejected)
+- Click "View" to see job posting or "Apply" to apply directly
+- Track metrics: total jobs, priority counts, average score
 
 ## Resources
 

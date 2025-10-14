@@ -34,17 +34,24 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
 ### Key Directories
 
 - `app/` - Next.js App Router pages and API routes
-- `app/api/chat/` - Job Discovery Agent endpoint (Firecrawl MCP + Adzuna + custom tools)
-- `app/api/match/` - Job Matching Agent endpoint (scoring and fit analysis)
-- `components/chat/` - Chat interface components
-- `components/ai-elements/` - Vercel AI Elements components
-- `components/agent/` - Agent configuration and tools
-  - `components/agent/prompts/` - Agent system prompts (job-discovery-prompt.ts, job-matching-prompt.ts)
-  - `components/agent/tools/` - Custom AI SDK tools (adzuna.ts, save-jobs.ts, score-jobs.ts)
-- `components/ui/` - shadcn/ui components
-- `lib/mcp/` - MCP client implementation for Firecrawl
-- `lib/storage/` - localStorage utilities (profile.ts, jobs.ts)
-- `lib/utils.ts` - Utility functions including `cn()` for className merging
+  - `app/api/chat/` - Job Discovery Agent endpoint (Firecrawl MCP + Adzuna + custom tools)
+  - `app/api/match/` - Job Matching Agent endpoint (scoring and fit analysis)
+  - `app/profile/` - User profile creation and editing page
+  - `app/jobs/` - Jobs dashboard with metrics, filtering, and management
+- `components/` - React components organized by feature
+  - `components/chat/` - Multi-agent chat interface
+  - `components/profile/` - Profile form and scoring weights UI
+  - `components/jobs/` - Jobs dashboard components (metrics, table, cards)
+  - `components/layout/` - Shared layout components (Header with navigation)
+  - `components/ai-elements/` - Vercel AI Elements components
+  - `components/ui/` - shadcn/ui base components
+  - `components/agent/` - Agent configuration and tools
+    - `components/agent/prompts/` - Agent system prompts
+    - `components/agent/tools/` - Custom AI SDK tools
+- `lib/` - Core utilities and integrations
+  - `lib/mcp/` - MCP client implementation for Firecrawl
+  - `lib/storage/` - localStorage utilities (profile.ts, jobs.ts)
+  - `lib/utils.ts` - Utility functions including `cn()` for className merging
 - `types/` - TypeScript type definitions (job.ts, profile.ts)
 
 ### AI Integration
@@ -318,6 +325,7 @@ Display tool execution states using AI Elements:
   - Neutral base color with CSS variables
   - Import aliases: `@/components`, `@/lib/utils`, `@/components/ui`
   - Lucide React for icons
+  - Components used: Button, Input, Textarea, Label, Slider, Select, Badge, Card, Table
 - **AI Elements** from Vercel:
   - Pre-built components for AI applications
   - Located in `components/ai-elements/`
@@ -325,6 +333,57 @@ Display tool execution states using AI Elements:
   - Supports tool calls, reasoning tokens, and rich message formatting
   - Reasoning component documentation: https://ai-sdk.dev/elements/components/reasoning#reasoning
   - Reasoning tokens automatically display as collapsible blocks with duration tracking
+- **react-hook-form** with Zod validation for profile forms
+- **Custom animations** in `app/globals.css` for premium UI effects
+
+### UI Pages
+
+#### **Profile Page** (`/profile`)
+- Form-based profile creation and editing
+- **ProfileForm component**: Comprehensive form with react-hook-form + Zod validation
+  - Fields: Name, Professional Background (min 10 chars), Skills (comma-separated)
+  - Salary range with validation (min < max)
+  - Preferred locations and job preferences
+  - Deal breakers (textarea)
+- **ScoringWeights component**: Interactive sliders for 5 scoring categories
+  - Real-time validation (must sum to 100%)
+  - Visual indicator (green when valid, red when invalid)
+  - Range: 0-100, step: 5
+- Loads existing profile from localStorage
+- Pre-populates form if profile exists
+- Success message display on save
+- Indicator if profile was created via chat
+
+#### **Jobs Dashboard** (`/jobs`)
+- Premium dashboard with professional design (Stripe/Linear/Notion quality)
+- **HeroSection**: Animated gradient banner with rocket emoji
+- **ActionCards**: 4 quick-action cards (Profile Setup, Discover Jobs, Score Jobs, View Dashboard)
+- **DashboardMetrics**: 5 metric cards with real-time calculations
+  - Total Jobs, High Priority, Medium Priority, Average Score, Last Updated
+  - Color-coded numbers with icons
+  - Staggered fade-in animations
+- **JobTable**: Advanced table with filtering and sorting
+  - Filters: Priority (All/High/Medium/Low), Status (All/Saved/Applied/Interviewing/Offer/Rejected)
+  - Sorting: Score (High/Low), Date (Newest/Oldest), Company (A-Z)
+  - Large color-coded score display
+  - Priority badges (pill-shaped with proper colors)
+  - Status dropdown per row with localStorage sync
+  - Action buttons (View, Apply) with external links
+  - Empty state with helpful message
+  - Results counter
+- **ScoreBreakdown**: Circular score indicator with animated progress bars
+  - Color-coded categories (blue, green, purple, yellow, red)
+  - Staggered animations on render
+- **JobCard**: Premium card design with dual states (saved/unsaved)
+  - Hover effects with lift and shadow
+  - Expandable description
+  - Score breakdown integration
+  - Analysis and skill gaps display
+
+#### **Navigation**
+- **Header component** with navigation between Chat, Jobs, and Profile
+- Active page highlighting
+- Briefcase, Home, and User icons (Lucide React)
 
 ### Adding Components
 
