@@ -10,6 +10,8 @@ An intelligent job search and matching system powered by multi-agent AI architec
   - **Job Matching Agent** - Analyzes job fit with intelligent scoring and gap identification
   - **Intent Detection** - Automatically routes to appropriate agent based on user's message
   - **Seamless Coordination** - Both agents work in same conversation with merged message streams
+  - **Chat Persistence** - Conversation history persists across page navigation (in-memory via React Context)
+  - **Clear Chat** - Reset conversation with confirmation dialog while preserving saved jobs and profile
 - **Multi-Source Job Search** - Combines Firecrawl web scraping with Adzuna API for comprehensive coverage
 - **Intelligent Job Scoring** - Weighted scoring system (0-100) with detailed reasoning and gap analysis
 - **Natural Language Commands** - Find, save, and score jobs through conversation
@@ -26,6 +28,7 @@ An intelligent job search and matching system powered by multi-agent AI architec
   - Advanced filtering (by priority and status)
   - Multiple sorting options (score, date, company)
   - Status tracking per job (Saved → Applied → Interviewing → Offer/Rejected)
+  - Job removal with confirmation dialog (permanently delete unwanted jobs)
   - Animated UI with professional design quality
   - Empty states with helpful guidance
 - **Navigation** - Unified header with easy access to Chat, Jobs, and Profile pages
@@ -82,6 +85,8 @@ Go to the chat interface (`/`) and tell the agent what you're looking for:
 - "Search for remote product manager roles in fintech"
 - "Show me senior software engineer positions in San Francisco"
 
+**Tip**: Use the "Clear Chat" button (with refresh icon) at the top to start a new conversation. This resets the chat history while keeping your saved jobs and profile.
+
 ### 3. Save Interesting Jobs
 The agent finds jobs temporarily. Explicitly save the ones you like:
 - "Save the top 5 jobs"
@@ -100,6 +105,7 @@ Navigate to the Jobs Dashboard (`/jobs`):
 - Filter by priority (High/Medium/Low) or status
 - Sort by score, date, or company
 - Update job status as you progress (Saved → Applied → Interviewing → Offer/Rejected)
+- **Remove unwanted jobs** - Click the trash icon to permanently delete a job (with confirmation)
 - Click "View" to see job posting or "Apply" to apply directly
 - Track metrics: total jobs, priority counts, average score
 
@@ -153,10 +159,12 @@ Navigate to the Jobs Dashboard (`/jobs`):
 
 Key Features:
 - **Unified interface**: Both agents accessible in single conversation
+- **React Context state**: Chat persists across navigation via ChatContext provider
 - **Intelligent routing**: Keywords like 'score', 'analyze', 'match' trigger Matching Agent
 - **Message merging**: Chronologically combined streams from both agents
 - **Context-aware**: Checks for saved jobs and profile before routing
 - **Graceful fallbacks**: Handles missing data with helpful messages
+- **Clear Chat**: Reset conversation while preserving jobs and profile
 - Communication via localStorage (shared state)
 ```
 

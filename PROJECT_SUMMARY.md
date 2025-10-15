@@ -81,12 +81,24 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - Saved jobs persist in localStorage with status tracking
 
 ### 4. Unified Multi-Agent Chat Interface
+- **React Context state management** (`lib/context/ChatContext.tsx`):
+  - Global ChatContext provider wraps entire app for persistence across navigation
+  - Hosts both useChat hooks (Discovery + Matching) at context level
+  - Chat history persists during browser session (cleared on refresh)
+  - Manages savedJobs, userProfile, activeAgent state centrally
+  - Provides `clearChat()` method and `handleSendMessage()` with intelligent routing
 - **Dual-agent coordination**: Single conversation interface with both Discovery and Matching agents
 - **Intelligent routing**: Automatic agent selection based on user intent detection
-- **Intent keywords**: 'score', 'analyze', 'match', 'fit', 'rate', 'evaluate', 'assess', 'rank', 'priority', 'compare'
+  - Keywords: 'score', 'analyze', 'match', 'fit', 'rate', 'evaluate', 'assess', 'rank', 'priority', 'compare'
+  - Routes to Matching Agent when scoring keywords + saved jobs + profile exist
+  - Checks for saved jobs and profile before routing
 - **Message merging**: Chronologically combined messages from both agents
 - **Context-aware**: Routes to Matching Agent when scoring keywords detected + saved jobs exist
 - **Graceful fallbacks**: Handles missing profile or no saved jobs scenarios
+- **Clear Chat feature**: AlertDialog with confirmation before clearing history
+  - RotateCcw icon button at top of chat interface
+  - Preserves saved jobs and profile data
+  - Resets both agent conversations and message tracking
 - Built with AI Elements (Vercel's pre-built AI UI components)
 - Streaming responses with visible tool execution
 - Reasoning tokens displayed as collapsible blocks
@@ -122,7 +134,8 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
     - Large color-coded score display per job
     - Priority badges (pill-shaped, color-coded)
     - Status dropdown per row with localStorage sync
-    - Action buttons: View (external link), Apply (external link)
+    - Action buttons: View (external link), Remove (with confirmation), Apply (external link)
+    - Remove button with AlertDialog confirmation and destructive styling
     - Empty state with helpful message and CTA
     - Results counter
   - **ScoreBreakdown component**: Circular score indicator with animated progress bars
@@ -285,13 +298,18 @@ ADZUNA_API_KEY          # Job board search
 - `next` (15.5.3): React framework with App Router
 - `react` (19.1.0): UI library
 - `tailwindcss` (v4): Styling with custom animations
-- `shadcn/ui`: Component library (Radix UI primitives)
-- `lucide-react`: Icon library
+- `shadcn/ui`: Component library (Radix UI primitives including AlertDialog)
+- `lucide-react`: Icon library (RotateCcw, Trash2, etc.)
 
 ## Technical Achievements
 
 ### 1. Multi-Agent Architecture with Unified Interface
 - Designed two specialized agents with distinct responsibilities
+- Implemented **ChatContext** (`lib/context/ChatContext.tsx`) for global state management:
+  - Hosts both useChat hooks at context level
+  - Chat persists across page navigation during browser session
+  - Centralized state for savedJobs, userProfile, activeAgent
+  - Provides clearChat() and handleSendMessage() methods
 - Implemented **dual `useChat` hooks** in single component for seamless coordination
 - **Intelligent routing system** with keyword-based intent detection
 - **Message stream merging** using React.useMemo for chronological display
@@ -443,7 +461,7 @@ capstone-job-search-score/
 │   │       └── index.ts
 │   ├── ai-elements/                    # AI SDK UI components
 │   ├── chat/
-│   │   └── chat-assistant.tsx          # Multi-agent chat interface
+│   │   └── chat-assistant.tsx          # Multi-agent chat interface (446 lines)
 │   ├── jobs/                           # Jobs Dashboard components
 │   │   ├── ActionCards.tsx
 │   │   ├── DashboardMetrics.tsx
@@ -458,6 +476,8 @@ capstone-job-search-score/
 │   │   └── ScoringWeights.tsx
 │   └── ui/                             # shadcn/ui components
 ├── lib/
+│   ├── context/
+│   │   └── ChatContext.tsx             # React Context for global chat state (280 lines)
 │   ├── mcp/                            # MCP client for Firecrawl
 │   ├── storage/
 │   │   ├── jobs.ts                     # Job storage utilities

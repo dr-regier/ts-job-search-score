@@ -51,6 +51,7 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
 - `lib/` - Core utilities and integrations
   - `lib/mcp/` - MCP client implementation for Firecrawl
   - `lib/storage/` - localStorage utilities (profile.ts, jobs.ts)
+  - `lib/context/` - React Context providers for global state management
   - `lib/utils.ts` - Utility functions including `cn()` for className merging
 - `types/` - TypeScript type definitions (job.ts, profile.ts)
 
@@ -305,9 +306,18 @@ Display tool execution states using AI Elements:
 
 ### Chat Architecture
 
+- **Global State**: `ChatContext` provider (`lib/context/ChatContext.tsx`) manages all chat state
+  - Wraps entire app in `app/layout.tsx` for persistence across navigation
+  - Hosts both `useChat` hooks at context level (prevents state loss on navigation)
+  - Manages savedJobs, userProfile, activeAgent state
+  - Provides `clearChat()` method to reset conversation while preserving data
 - **Frontend**: `ChatAssistant` component (`components/chat/chat-assistant.tsx`) with dual-agent support
+  - Simplified to 446 lines by consuming state from ChatContext
+  - No local state management - all state comes from context
 - **Multi-Agent Coordination**: Two `useChat` hooks (Discovery + Matching) merged into single conversation
 - **Intelligent Routing**: Automatic agent selection based on user intent detection
+  - Keywords: 'score', 'analyze', 'match', 'fit', 'rate', 'evaluate', 'assess', 'rank', 'priority', 'compare'
+  - Checks for saved jobs and profile before routing to Matching Agent
 - **API Routes**:
   - `/api/chat` - Job Discovery Agent
   - `/api/match` - Job Matching Agent (receives jobs and profile in body)
@@ -316,6 +326,8 @@ Display tool execution states using AI Elements:
 - **Sending Messages**: MUST use `sendMessage({ text: "message" })` format - string format does NOT work
 - **Streaming**: Official `useChat` hook handles streaming automatically for both agents
 - **State Management**: localStorage integration for jobs and profile, auto-refresh after agent actions
+- **Chat Persistence**: Chat history persists across page navigation (in-memory via ChatContext)
+- **Clear Chat Feature**: AlertDialog confirms clearing history while preserving jobs and profile
 - **Error Handling**: Graceful fallbacks for API failures via `status` monitoring
 
 ### UI Components
@@ -325,7 +337,7 @@ Display tool execution states using AI Elements:
   - Neutral base color with CSS variables
   - Import aliases: `@/components`, `@/lib/utils`, `@/components/ui`
   - Lucide React for icons
-  - Components used: Button, Input, Textarea, Label, Slider, Select, Badge, Card, Table
+  - Components used: Button, Input, Textarea, Label, Slider, Select, Badge, Card, Table, AlertDialog
 - **AI Elements** from Vercel:
   - Pre-built components for AI applications
   - Located in `components/ai-elements/`
@@ -368,7 +380,8 @@ Display tool execution states using AI Elements:
   - Large color-coded score display
   - Priority badges (pill-shaped with proper colors)
   - Status dropdown per row with localStorage sync
-  - Action buttons (View, Apply) with external links
+  - Action buttons: View (external link), Remove (with confirmation dialog), Apply (external link)
+  - Remove button uses AlertDialog for confirmation with destructive styling
   - Empty state with helpful message
   - Results counter
 - **ScoreBreakdown**: Circular score indicator with animated progress bars
@@ -380,8 +393,14 @@ Display tool execution states using AI Elements:
   - Score breakdown integration
   - Analysis and skill gaps display
 
-#### **Navigation**
+#### **Home Page / Chat Interface** (`/`)
 - **Header component** with navigation between Chat, Jobs, and Profile
+- **Clear Chat button** with confirmation dialog (AlertDialog)
+  - RotateCcw icon, outline variant
+  - Positioned at top of chat interface below header
+  - Confirms before clearing to prevent accidental data loss
+  - Preserves saved jobs and profile data
+  - Resets both agent conversations and message tracking
 - Active page highlighting
 - Briefcase, Home, and User icons (Lucide React)
 
