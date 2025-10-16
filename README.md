@@ -8,12 +8,14 @@ An intelligent job search and matching system powered by multi-agent AI architec
 - **Unified Multi-Agent Chat** - Single conversation interface with intelligent routing:
   - **Job Discovery Agent** - Autonomously searches jobs across company career pages and job boards
   - **Job Matching Agent** - Analyzes job fit with intelligent scoring and gap identification
+  - **Resume Generator Agent** - AI-powered resume tailoring for specific job opportunities
   - **Intent Detection** - Automatically routes to appropriate agent based on user's message
-  - **Seamless Coordination** - Both agents work in same conversation with merged message streams
+  - **Seamless Coordination** - Multiple agents work in same conversation with merged message streams
   - **Chat Persistence** - Conversation history persists across page navigation (in-memory via React Context)
   - **Clear Chat** - Reset conversation with confirmation dialog while preserving saved jobs and profile
 - **Multi-Source Job Search** - Combines Firecrawl web scraping with Adzuna API for comprehensive coverage
 - **Intelligent Job Scoring** - Weighted scoring system (0-100) with detailed reasoning and gap analysis
+- **AI-Powered Resume Tailoring** - Generate customized resumes for specific jobs using GPT-5
 - **Natural Language Commands** - Find, save, and score jobs through conversation
 - **AI Elements Components** - Rich UI components for tool calls, reasoning, and structured outputs
 
@@ -28,17 +30,36 @@ An intelligent job search and matching system powered by multi-agent AI architec
   - Advanced filtering (by priority and status)
   - Multiple sorting options (score, date, company)
   - Status tracking per job (Saved → Applied → Interviewing → Offer/Rejected)
+  - **Generate Resume** button (✨) - Create tailored resumes for specific jobs
   - Job removal with confirmation dialog (permanently delete unwanted jobs)
   - Animated UI with professional design quality
   - Empty states with helpful guidance
-- **Navigation** - Unified header with easy access to Chat, Jobs, and Profile pages
+- **Resume Library** (`/resumes`) - Upload and manage your resumes:
+  - Upload markdown or text files (max 50KB)
+  - Grid view of all your resumes with preview (first 200 characters)
+  - View full resume content in modal
+  - Edit resume name and content
+  - Delete resumes with confirmation
+  - Automatic section parsing (summary, experience, skills, education)
+  - Clean, professional design matching Profile page
+- **AI Resume Generation** - Accessible from Jobs dashboard:
+  - Select a master resume to tailor for a specific job
+  - AI analyzes job requirements and reorders resume content
+  - Shows match analysis with alignment score and addressed requirements
+  - Documents all changes (reordering, keyword integration, emphasis)
+  - Identifies remaining gaps with recommendations
+  - Copy to clipboard or download as .md file
+  - Uses GPT-5 with reasoning_effort: 'medium' for quality output
+- **Navigation** - Unified header with easy access to Chat, Jobs, Resumes, and Profile pages
 
 ### Technical Features
-- **localStorage Persistence** - Save jobs and profiles without needing a database
+- **localStorage Persistence** - Save jobs, profiles, and resumes without needing a database
 - **TypeScript** - Full type safety across the entire application
 - **shadcn/ui Design System** - Clean, modern UI components with custom animations
 - **Responsive Design** - Mobile-first approach that scales beautifully to desktop
 - **Form Validation** - react-hook-form with Zod schemas for type-safe forms
+- **File Upload** - Support for markdown and text resume files with validation
+- **GPT-5 Integration** - Advanced AI reasoning for resume tailoring with reasoning_effort: 'medium'
 
 ## Setup
 
@@ -99,7 +120,21 @@ Get detailed fit analysis in the same conversation:
 - The agent analyzes each job against your profile with reasoning and gap identification
 - Scores appear with detailed breakdowns and missing qualifications
 
-### 5. Manage Your Applications
+### 5. Upload Your Resumes
+Navigate to the Resume Library (`/resumes`):
+- Upload your master resumes (markdown or text files, max 50KB)
+- View and edit your resumes
+- Keep multiple versions for different job types
+
+### 6. Generate Tailored Resumes
+From the Jobs Dashboard (`/jobs`):
+- Click the ✨ sparkles icon on any job
+- Select a master resume to customize
+- AI generates a tailored version emphasizing relevant experience
+- View match analysis, changes made, and alignment score
+- Copy to clipboard or download as .md file
+
+### 7. Manage Your Applications
 Navigate to the Jobs Dashboard (`/jobs`):
 - View all saved jobs with scores and priorities
 - Filter by priority (High/Medium/Low) or status
@@ -124,47 +159,49 @@ Navigate to the Jobs Dashboard (`/jobs`):
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                           Browser UI (Chat)                              │
+│                        Browser UI (Chat + Pages)                         │
 │  - AI Elements components (Conversation, Message, Tool, Reasoning)       │
 │  - useChat hook for streaming                                            │
 │  - localStorage for persistence                                          │
-└────────────┬────────────────────────────────────────┬────────────────────┘
-             │                                        │
-             │ 1) "Find jobs at Google"              │ 3) "Score my saved jobs"
-             ↓                                        ↓
-┌────────────────────────────────┐    ┌────────────────────────────────────┐
-│   Job Discovery Agent          │    │    Job Matching Agent              │
-│   /api/chat/route.ts           │    │    /api/match/route.ts             │
-├────────────────────────────────┤    ├────────────────────────────────────┤
-│ Tools:                         │    │ Tools:                             │
-│  - Firecrawl MCP (scrape)      │    │  - Firecrawl MCP (research)        │
-│  - Adzuna API                  │    │  - Web Search                      │
-│  - Web Search                  │    │  - Score Jobs                      │
-│  - Save Jobs                   │    │                                    │
-├────────────────────────────────┤    ├────────────────────────────────────┤
-│ Responsibilities:              │    │ Responsibilities:                  │
-│  - Multi-source search         │    │  - Job fit analysis                │
-│  - Autonomous decisions        │    │  - Weighted scoring (0-100)        │
-│  - Result refinement           │    │  - Gap identification              │
-│  - Present findings            │    │  - Priority assignment             │
-└────────────┬───────────────────┘    └──────────────┬─────────────────────┘
-             │                                       │
-             │ 2) Save jobs                          │ 4) Update with scores
-             ↓                                       ↓
-        ┌─────────────────────────────────────────────────┐
-        │         localStorage (Shared State)             │
-        │  - User Profile                                 │
-        │  - Saved Jobs (with/without scores)             │
-        └─────────────────────────────────────────────────┘
+└───┬────────────────────────────┬─────────────────────────┬───────────────┘
+    │                            │                         │
+    │ 1) "Find jobs"             │ 3) "Score jobs"         │ 5) ✨ Generate Resume
+    ↓                            ↓                         ↓
+┌────────────────────┐  ┌────────────────────┐  ┌─────────────────────────┐
+│ Job Discovery      │  │ Job Matching       │  │ Resume Generator        │
+│ /api/chat          │  │ /api/match         │  │ /api/resume             │
+├────────────────────┤  ├────────────────────┤  ├─────────────────────────┤
+│ Tools:             │  │ Tools:             │  │ Tools:                  │
+│ - Firecrawl MCP    │  │ - Firecrawl MCP    │  │ - Firecrawl MCP         │
+│ - Adzuna API       │  │ - Web Search       │  │ - Web Search            │
+│ - Web Search       │  │ - Score Jobs       │  │ - Generate Resume       │
+│ - Save Jobs        │  │                    │  │                         │
+├────────────────────┤  ├────────────────────┤  ├─────────────────────────┤
+│ Responsibilities:  │  │ Responsibilities:  │  │ Responsibilities:       │
+│ - Multi-source     │  │ - Job fit analysis │  │ - Resume analysis       │
+│ - Autonomous       │  │ - Weighted scoring │  │ - Content reordering    │
+│ - Result refine    │  │ - Gap identify     │  │ - Keyword integration   │
+│ - Present findings │  │ - Priority assign  │  │ - Authenticity rules    │
+└──────┬─────────────┘  └──────┬─────────────┘  └──────┬──────────────────┘
+       │                       │                        │
+       │ 2) Save               │ 4) Update scores       │ 6) Return tailored
+       ↓                       ↓                        ↓
+   ┌───────────────────────────────────────────────────────────────┐
+   │              localStorage (Shared State)                      │
+   │  - User Profile                                               │
+   │  - Saved Jobs (with/without scores)                           │
+   │  - Master Resumes                                             │
+   └───────────────────────────────────────────────────────────────┘
 
 Key Features:
-- **Unified interface**: Both agents accessible in single conversation
-- **React Context state**: Chat persists across navigation via ChatContext provider
-- **Intelligent routing**: Keywords like 'score', 'analyze', 'match' trigger Matching Agent
-- **Message merging**: Chronologically combined streams from both agents
-- **Context-aware**: Checks for saved jobs and profile before routing
-- **Graceful fallbacks**: Handles missing data with helpful messages
-- **Clear Chat**: Reset conversation while preserving jobs and profile
+- **Three specialized agents**: Discovery, Matching, Resume Generator
+- **Unified interface**: Chat agents accessible in single conversation
+- **React Context state**: Chat persists across navigation via ChatContext
+- **Intelligent routing**: Keywords trigger appropriate agent
+- **Message merging**: Chronologically combined streams
+- **Context-aware**: Checks for required data before routing
+- **Resume tailoring**: AI analyzes job requirements and reorders content
+- **Authenticity**: Never fabricates experience, only reorders and emphasizes
 - Communication via localStorage (shared state)
 ```
 

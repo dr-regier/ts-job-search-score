@@ -43,7 +43,8 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
 - `components/` - React components organized by feature
   - `components/chat/` - Multi-agent chat interface
   - `components/profile/` - Profile form and scoring weights UI
-  - `components/jobs/` - Jobs dashboard components (metrics, table, cards)
+  - `components/jobs/` - Jobs dashboard components (metrics, table, cards, resume generation)
+  - `components/resumes/` - Resume library components (upload, cards, editing)
   - `components/layout/` - Shared layout components (Header with navigation)
   - `components/ai-elements/` - Vercel AI Elements components
   - `components/ui/` - shadcn/ui base components
@@ -52,20 +53,21 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
     - `components/agent/tools/` - Custom AI SDK tools
 - `lib/` - Core utilities and integrations
   - `lib/mcp/` - MCP client implementation for Firecrawl
-  - `lib/storage/` - localStorage utilities (profile.ts, jobs.ts)
+  - `lib/storage/` - localStorage utilities (profile.ts, jobs.ts, resumes.ts)
   - `lib/context/` - React Context providers for global state management
   - `lib/utils.ts` - Utility functions including `cn()` for className merging
-- `types/` - TypeScript type definitions (job.ts, profile.ts)
+- `types/` - TypeScript type definitions (job.ts, profile.ts, resume.ts)
 
 ### AI Integration
 
 - Uses AI SDK 5's `streamText()` for streaming responses
 - Configured for GPT-5 via OpenAI provider
-- Multi-agent architecture with two specialized agents:
+- Multi-agent architecture with three specialized agents:
   - **Job Discovery Agent** (`/api/chat`) - Autonomous job search across multiple sources
   - **Job Matching Agent** (`/api/match`) - Intelligent scoring and fit analysis
+  - **Resume Generator Agent** (`/api/resume`) - AI-powered resume tailoring for specific jobs
 - MCP Firecrawl integration via `getFirecrawlMCPClient()` in `/lib/mcp/`
-- Custom tools: Adzuna API search, save jobs, score jobs
+- Custom tools: Adzuna API search, save jobs, score jobs, generate tailored resumes
 - System instructions defined in `components/agent/prompts/`
 - Agent coordination via localStorage (no direct agent-to-agent calls)
 - use useChat for all streaming handling (read the doc first, always, before writing any streaming code: https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat)
@@ -91,6 +93,19 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
 - Output: Scored jobs with reasoning, breakdown, and recommendations
 - API: `/api/match/route.ts`
 - Prompt: `components/agent/prompts/job-matching-prompt.ts`
+
+**Resume Generator Agent** - Tailors master resumes for specific job opportunities
+- Tools: Firecrawl MCP (for company research), web search, generate tailored resume
+- Responsibilities: Resume analysis, content reordering, keyword integration, maintaining authenticity
+- Output: Tailored resume with change documentation and alignment analysis
+- API: `/api/resume/route.ts`
+- Prompt: `components/agent/prompts/resume-generator-prompt.ts`
+- Configuration: Uses GPT-5 with `reasoning_effort: 'medium'` for quality output
+- Process: 5-step agent loop with `stopWhen: stepCountIs(5)`
+- Critical Rules:
+  - ❌ NEVER fabricate experience, skills, or accomplishments
+  - ❌ NEVER add projects, companies, or roles not in master resume
+  - ✅ ONLY reorder bullets, emphasize relevant experience, mirror keywords naturally
 
 **Agent Coordination**
 - Agents do NOT directly call each other
@@ -204,6 +219,16 @@ const wrappedTools = Object.fromEntries(
 - Output: Scored jobs data with action: "scored" and statistics
 - Used by Job Matching Agent to return analysis results
 - Client-side handler updates localStorage
+
+**Generate Tailored Resume Tool** (`components/agent/tools/generate-resume.ts`)
+- Generates tailored resumes for specific job opportunities
+- Input: jobId, masterResumeId, tailoredResumeContent, changes array, matchAnalysis
+- Output: Tailored resume with action: "generated", change documentation, alignment score
+- Helper function: `getResumeGenerationContext(jobId, masterResumeId)` fetches job, resume, profile from localStorage
+- Context injection: Job details, requirements, master resume content, user profile formatted as string
+- Used by Resume Generator Agent to return tailored resume results
+- Client-side handler displays resume with copy/download functionality
+- Changes tracked by type: reorder, keyword, emphasis, summary, trim, section_move
 
 #### Creating New Tools and Agents
 
@@ -382,7 +407,8 @@ Display tool execution states using AI Elements:
   - Large color-coded score display
   - Priority badges (pill-shaped with proper colors)
   - Status dropdown per row with localStorage sync
-  - Action buttons: View (external link), Remove (with confirmation dialog), Apply (external link)
+  - Action buttons: View (external link), Generate Resume (✨ sparkles icon), Remove (with confirmation dialog), Apply (external link)
+  - Generate Resume button triggers GenerateResumeDialog with purple hover effect
   - Remove button uses AlertDialog for confirmation with destructive styling
   - Empty state with helpful message
   - Results counter
@@ -394,9 +420,51 @@ Display tool execution states using AI Elements:
   - Expandable description
   - Score breakdown integration
   - Analysis and skill gaps display
+- **GenerateResumeDialog**: Two-phase dialog for resume generation
+  - Selection phase: Job details display, resume dropdown selector, generate button
+  - Generated phase: Match analysis, changes made, resume content viewer, copy/download buttons
+  - Uses useChat with custom transport to inject jobId and masterResumeId
+  - Watches for tool results with action: "generated"
+  - Copy to clipboard functionality with success indicator
+  - Download as .md file with sanitized filename
+
+#### **Resume Library** (`/resumes`)
+- Clean, professional design matching Profile page style
+- **Page Header**: Simple text-based header with description
+- **Upload Section**: File upload component with validation
+  - Accepts .md, .markdown, .txt files (max 50KB)
+  - Drag-and-drop or click to select
+  - Real-time validation feedback
+  - Success/error message display
+- **Resume Grid**: Grid layout displaying resume cards (3 columns on large screens)
+  - Resume count indicator
+  - Empty state with helpful message and upload prompt
+- **ResumeCard**: Individual resume display with actions
+  - Resume name and format badge (Markdown/Text)
+  - Upload date
+  - Content preview (first 200 characters)
+  - Action buttons: View (full content), Edit (name/content), Delete (with confirmation)
+  - Hover effects with border color change
+- **ResumeEditDialog**: Modal for editing resume details
+  - Edit resume name
+  - Edit resume content in textarea (markdown-friendly)
+  - Save/Cancel actions
+  - Updates localStorage on save
+- **View Resume Dialog**: Full-screen content viewer
+  - Displays complete resume content in monospace font
+  - Formatted with whitespace preservation
+  - Upload date display
+  - Close button
+- **Tip Section**: Contextual help (shown when resumes exist)
+  - Gray background with Lightbulb icon
+  - Links to resume generation feature from Jobs dashboard
+- **Data Storage**: Uses localStorage via `lib/storage/resumes.ts`
+  - Resume interface: id, name, content, uploadedAt, format, sections
+  - Automatic section parsing (summary, experience, skills, education)
+  - SSR-safe storage operations
 
 #### **Home Page / Chat Interface** (`/`)
-- **Header component** with navigation between Chat, Jobs, and Profile
+- **Header component** with navigation between Chat, Jobs, Resumes, and Profile
 - **Clear Chat button** with confirmation dialog (AlertDialog)
   - RotateCcw icon, outline variant
   - Positioned at top of chat interface below header
@@ -404,7 +472,7 @@ Display tool execution states using AI Elements:
   - Preserves saved jobs and profile data
   - Resets both agent conversations and message tracking
 - Active page highlighting
-- Briefcase, Home, and User icons (Lucide React)
+- Navigation icons: Home (Chat), Briefcase (Jobs), FileText (Resumes), User (Profile)
 
 ### Adding Components
 

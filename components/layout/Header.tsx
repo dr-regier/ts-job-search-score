@@ -26,6 +26,17 @@ export function Header() {
           </Button>
 
           <Button
+            variant={pathname === "/profile" ? "default" : "ghost"}
+            size="sm"
+            asChild
+          >
+            <Link href="/profile">
+              <User className="w-4 h-4 mr-2" />
+              Profile
+            </Link>
+          </Button>
+
+          <Button
             variant={pathname === "/jobs" ? "default" : "ghost"}
             size="sm"
             asChild
@@ -44,17 +55,6 @@ export function Header() {
             <Link href="/resumes">
               <FileText className="w-4 h-4 mr-2" />
               Resumes
-            </Link>
-          </Button>
-
-          <Button
-            variant={pathname === "/profile" ? "default" : "ghost"}
-            size="sm"
-            asChild
-          >
-            <Link href="/profile">
-              <User className="w-4 h-4 mr-2" />
-              Profile
             </Link>
           </Button>
         </nav>

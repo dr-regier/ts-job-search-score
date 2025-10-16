@@ -53,6 +53,24 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
   - Assigns priority levels (high ≥85, medium 70-84, low <70)
 - **Prompt**: 214-line system prompt defining scoring methodology
 
+**Resume Generator Agent** (`/api/resume/route.ts`)
+- **Purpose**: AI-powered resume tailoring for specific job opportunities
+- **Tools**: Firecrawl MCP (company research), web search, generate tailored resume
+- **Capabilities**:
+  - Analyzes job requirements and master resume content
+  - Reorders experience bullets to emphasize relevant skills
+  - Integrates keywords naturally from job descriptions
+  - Maintains authenticity (never fabricates experience)
+  - Documents all changes with detailed explanations
+  - Provides alignment score and gap analysis
+- **Prompt**: 293-line system prompt with explicit authenticity rules
+- **Configuration**: Uses GPT-5 with `reasoning_effort: 'medium'` for quality
+- **Process**: 5-step agent loop (Data Collection → Planning → Modification → Review → Documentation)
+- **Critical Rules**:
+  - ❌ NEVER fabricate experience, skills, or accomplishments
+  - ❌ NEVER add projects, companies, or roles not in master resume
+  - ✅ ONLY reorder bullets, emphasize relevant experience, mirror keywords naturally
+
 **Agent Coordination**
 - Agents do NOT directly call each other
 - Communication via localStorage (shared state pattern)
@@ -147,16 +165,39 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
   - pulse-soft (2s ease-in-out infinite)
 - **Responsive design**: Mobile-first with breakpoints for tablet and desktop
 
-### 7. Navigation & Layout
+### 7. Resume Library & AI-Powered Tailoring
+- **Resume upload and management** (`/resumes`):
+  - Upload .md, .markdown, .txt files (max 50KB)
+  - Clean, professional page design matching Profile page style
+  - Grid layout with resume cards showing preview (first 200 chars)
+  - Actions: View (full content), Edit (name/content), Delete (with confirmation)
+  - Automatic section parsing (summary, experience, skills, education)
+  - Resume count indicator and empty state
+- **AI-powered resume generation** via Resume Generator Agent:
+  - Accessible from Jobs dashboard via ✨ sparkles icon button
+  - Two-phase dialog: Resume selection → Generated result display
+  - Tailors master resume to specific job requirements
+  - Shows match analysis with alignment score and addressed requirements
+  - Documents all changes (reorder, keyword, emphasis, summary, trim, section_move)
+  - Identifies remaining gaps with recommendations
+  - Copy to clipboard and download as .md file
+  - Uses GPT-5 with reasoning_effort: 'medium' for quality output
+- **Data Storage**: Uses localStorage via `lib/storage/resumes.ts`
+  - Resume interface: id, name, content, uploadedAt, format, sections
+  - SSR-safe storage operations
+  - Automatic section parsing for structured data
+
+### 8. Navigation & Layout
 - **Header component** with unified navigation
-- Links to Chat (`/`), Jobs (`/jobs`), Profile (`/profile`)
+- Links to Chat (`/`), Jobs (`/jobs`), Resumes (`/resumes`), Profile (`/profile`)
 - Active page highlighting
-- Icons: Home (Briefcase), Jobs (Briefcase), Profile (User)
+- Icons: Home (Chat), Briefcase (Jobs), FileText (Resumes), User (Profile)
 - Consistent across all pages
 
-### 8. Data Persistence
+### 9. Data Persistence
 - **localStorage-based**: No database or authentication required
 - **User Profile**: Skills, salary range, preferences, scoring weights, createdVia
+- **Resumes**: Master resumes with content, format, and parsed sections
 - **Jobs**: Discovered jobs with optional scores and application status
 - **Auto-refresh**: State updates after agent actions complete
 - **SSR-safe**: All storage utilities check for browser environment
@@ -182,6 +223,17 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - Input: scoredJobs[] (with score, breakdown, reasoning, gaps, priority)
 - Output: Scored data with action: "scored", statistics
 - Behavior: Returns analysis for client-side localStorage update
+```
+
+### Generate Tailored Resume Tool (`components/agent/tools/generate-resume.ts`)
+```typescript
+- Input: jobId, masterResumeId, tailoredResumeContent, changes[], matchAnalysis
+- Output: Tailored resume with action: "generated", change documentation
+- Helper: getResumeGenerationContext(jobId, masterResumeId) fetches context from localStorage
+- Context: Job details, requirements, master resume content, user profile
+- Changes tracked by type: reorder, keyword, emphasis, summary, trim, section_move
+- MatchAnalysis: alignment score, addressed requirements, remaining gaps, recommendations
+- Behavior: Returns tailored resume for client-side display with copy/download
 ```
 
 ## Data Models
@@ -243,6 +295,28 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 }
 ```
 
+### Resume Interface (`types/resume.ts`)
+```typescript
+{
+  id: string                    // UUID
+  name: string                  // User-defined name
+  content: string               // Full resume text
+  uploadedAt: string            // ISO timestamp
+  format: "markdown" | "text"
+  sections?: {                  // Automatically parsed
+    summary?: string
+    experience?: string
+    skills?: string
+    education?: string
+    other?: string
+  }
+}
+```
+
+**Helper Functions:**
+- `parseResumeSections(content)`: Extracts structured sections using regex
+- `createResumeWithSections(name, content, format)`: Creates Resume with parsed sections
+
 ## Storage Utilities
 
 ### Profile Storage (`lib/storage/profile.ts`)
@@ -266,6 +340,14 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - `getJobsByPriority(priority)`: Filter by score priority
 - `getScoredJobs()`: Only jobs with scores
 - `getUnsavedJobs()`: Only temporary jobs
+
+### Resume Storage (`lib/storage/resumes.ts`)
+- `getResumes()`: Retrieve all resumes
+- `saveResume(resume)`: Save new resume
+- `updateResume(id, content)`: Update resume content
+- `updateResumeName(id, name)`: Update resume name
+- `deleteResume(id)`: Remove specific resume
+- `getResumeById(id)`: Retrieve single resume
 
 All functions are SSR-safe and handle errors gracefully.
 
@@ -304,7 +386,7 @@ ADZUNA_API_KEY          # Job board search
 ## Technical Achievements
 
 ### 1. Multi-Agent Architecture with Unified Interface
-- Designed two specialized agents with distinct responsibilities
+- Designed three specialized agents with distinct responsibilities
 - Implemented **ChatContext** (`lib/context/ChatContext.tsx`) for global state management:
   - Hosts both useChat hooks at context level
   - Chat persists across page navigation during browser session
@@ -315,20 +397,23 @@ ADZUNA_API_KEY          # Job board search
 - **Message stream merging** using React.useMemo for chronological display
 - Indirect coordination via shared state (localStorage)
 - Demonstrated autonomous decision-making within each agent's domain
-- Clear separation of concerns (discovery vs. analysis)
-- Graceful handling of edge cases (no profile, no saved jobs)
+- Clear separation of concerns (discovery vs. analysis vs. resume generation)
+- Graceful handling of edge cases (no profile, no saved jobs, no resumes)
 
 ### 2. Tool-Calling LLMs
 - Integrated MCP protocol for dynamic tool loading
-- Created 3 custom tools with Zod validation
+- Created 4 custom tools with Zod validation
 - Wrapped all tools with logging for debugging
 - Proper error handling and fallback behaviors
+- Custom transport in useChat for context injection (Resume Generator)
 
 ### 3. Advanced Prompting
 - 146-line Job Discovery prompt with autonomous decision criteria
 - 214-line Job Matching prompt with detailed scoring methodology
+- 293-line Resume Generator prompt with explicit authenticity rules
 - Clear definitions of success/failure conditions
 - Examples of autonomous decision-making loops
+- Emphasis on maintaining authenticity (never fabricating experience)
 
 ### 4. Web Scraping Integration
 - MCP client implementation for Firecrawl
@@ -357,6 +442,9 @@ ADZUNA_API_KEY          # Job board search
 - **Premium dashboard design** with animated components and professional polish
 - **Interactive filtering and sorting** with real-time updates
 - **Status tracking** with dropdown selects and localStorage sync
+- **Resume library** with clean, minimal design matching profile page
+- **Two-phase dialog** for resume generation (selection → generated result)
+- **Copy/download functionality** for generated resumes
 - **Custom animations** (gradient-x, fade-in, slide-up, pulse-soft)
 - **Responsive design** with mobile-first approach
 
@@ -394,14 +482,16 @@ ADZUNA_API_KEY          # Job board search
 - ✅ Application status tracking UI
 - ✅ Filtering and sorting capabilities
 - ✅ Real-time metrics display
+- ✅ Resume library with upload/view/edit/delete
+- ✅ Resume Generator agent with AI-powered tailoring
 
 ### Stretch Goals
 - Supervisor agent for full orchestration
 - Profile Creator agent (extract from conversation)
-- Resume Generator agent
 - Cover Letter agent
 - Email notifications for status changes
 - Interactive analytics dashboard
+- Resume versioning and comparison
 
 ### Advanced Features
 - Multi-user support with authentication
@@ -441,11 +531,14 @@ capstone-job-search-score/
 ├── app/
 │   ├── api/
 │   │   ├── chat/route.ts              # Job Discovery Agent
-│   │   └── match/route.ts             # Job Matching Agent
+│   │   ├── match/route.ts             # Job Matching Agent
+│   │   └── resume/route.ts            # Resume Generator Agent
 │   ├── jobs/
 │   │   └── page.tsx                    # Jobs Dashboard page
 │   ├── profile/
 │   │   └── page.tsx                    # Profile management page
+│   ├── resumes/
+│   │   └── page.tsx                    # Resume Library page
 │   ├── page.tsx                        # Landing page (chat)
 │   └── globals.css                     # Global styles with custom animations
 ├── components/
@@ -453,11 +546,13 @@ capstone-job-search-score/
 │   │   ├── prompts/
 │   │   │   ├── job-discovery-prompt.ts
 │   │   │   ├── job-matching-prompt.ts
+│   │   │   ├── resume-generator-prompt.ts
 │   │   │   └── index.ts
 │   │   └── tools/
 │   │       ├── adzuna.ts
 │   │       ├── save-jobs.ts
 │   │       ├── score-jobs.ts
+│   │       ├── generate-resume.ts
 │   │       └── index.ts
 │   ├── ai-elements/                    # AI SDK UI components
 │   ├── chat/
@@ -468,12 +563,17 @@ capstone-job-search-score/
 │   │   ├── HeroSection.tsx
 │   │   ├── JobCard.tsx
 │   │   ├── JobTable.tsx
-│   │   └── ScoreBreakdown.tsx
+│   │   ├── ScoreBreakdown.tsx
+│   │   └── GenerateResumeDialog.tsx    # Resume generation dialog
 │   ├── layout/                         # Layout components
 │   │   └── Header.tsx                  # Navigation header
 │   ├── profile/                        # Profile management components
 │   │   ├── ProfileForm.tsx
 │   │   └── ScoringWeights.tsx
+│   ├── resumes/                        # Resume Library components
+│   │   ├── ResumeUpload.tsx
+│   │   ├── ResumeCard.tsx
+│   │   └── ResumeEditDialog.tsx
 │   └── ui/                             # shadcn/ui components
 ├── lib/
 │   ├── context/
@@ -482,11 +582,13 @@ capstone-job-search-score/
 │   ├── storage/
 │   │   ├── jobs.ts                     # Job storage utilities
 │   │   ├── profile.ts                  # Profile storage utilities
+│   │   ├── resumes.ts                  # Resume storage utilities
 │   │   └── index.ts                    # Storage exports barrel
 │   └── utils.ts
 ├── types/
 │   ├── job.ts                          # Job interface + utilities
-│   └── profile.ts                      # UserProfile interface + utilities
+│   ├── profile.ts                      # UserProfile interface + utilities
+│   └── resume.ts                       # Resume interface + utilities
 ├── Specs/
 │   └── planning_framework_complete.md  # Full project specification
 ├── CLAUDE.md                           # Development guidelines
