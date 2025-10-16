@@ -89,22 +89,18 @@ export default function ResumesPage() {
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="space-y-8">
-          {/* Hero Section */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-[length:200%_100%] p-8 text-white shadow-xl animate-gradient-x">
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-2">
-                <FileText className="w-8 h-8" />
-                <h1 className="text-3xl font-bold">Resume Library</h1>
-              </div>
-              <p className="text-blue-100 max-w-2xl">
-                Upload and manage your resumes. Keep multiple versions for different job applications.
-              </p>
-            </div>
+          {/* Page Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Resume Library</h1>
+            <p className="text-gray-600 max-w-3xl">
+              Upload and manage your resumes. Keep multiple versions for different job applications
+              and generate tailored versions for specific opportunities.
+            </p>
           </div>
 
           {/* Upload Section */}
-          <div className="bg-white rounded-xl p-6 shadow-md border border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          <div className="bg-white rounded-lg p-6 border border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
               Upload New Resume
             </h2>
             <ResumeUpload onUploadSuccess={handleUploadSuccess} />
@@ -112,15 +108,13 @@ export default function ResumesPage() {
 
           {/* Master Resumes Section */}
           <div>
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-1">
-                  Master Resumes
-                </h2>
-                <p className="text-sm text-gray-600">
-                  {resumes.length} {resumes.length === 1 ? 'resume' : 'resumes'} in your library
-                </p>
-              </div>
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                Your Resumes
+              </h2>
+              <p className="text-sm text-gray-600">
+                {resumes.length} {resumes.length === 1 ? 'resume' : 'resumes'} in your library
+              </p>
             </div>
 
             {resumes.length === 0 ? (
@@ -158,20 +152,22 @@ export default function ResumesPage() {
           </div>
 
           {/* Tip Section */}
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg">
-            <div className="flex items-start gap-3">
-              <Lightbulb className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  💡 Pro Tip
-                </h3>
-                <p className="text-gray-700 leading-relaxed">
-                  Upload multiple versions of your resume for different role types.
-                  Later, you can generate tailored resumes for specific jobs based on these master templates.
-                </p>
+          {resumes.length > 0 && (
+            <div className="bg-gray-50 border border-gray-200 p-5 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Lightbulb className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                    Tip
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    From the Jobs dashboard, click the ✨ icon to generate tailored versions
+                    of your resumes optimized for specific job opportunities.
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 

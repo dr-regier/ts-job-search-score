@@ -36,8 +36,10 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
 - `app/` - Next.js App Router pages and API routes
   - `app/api/chat/` - Job Discovery Agent endpoint (Firecrawl MCP + Adzuna + custom tools)
   - `app/api/match/` - Job Matching Agent endpoint (scoring and fit analysis)
+  - `app/api/resume/` - Resume Generator Agent endpoint (resume tailoring for jobs)
   - `app/profile/` - User profile creation and editing page
   - `app/jobs/` - Jobs dashboard with metrics, filtering, and management
+  - `app/resumes/` - Resume library for uploading and managing resumes
 - `components/` - React components organized by feature
   - `components/chat/` - Multi-agent chat interface
   - `components/profile/` - Profile form and scoring weights UI
