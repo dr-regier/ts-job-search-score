@@ -6,10 +6,7 @@
  * and when to stop. Jobs are displayed temporarily until user saves them.
  */
 
-import {
-  JOB_DISCOVERY_SYSTEM_PROMPT,
-  JOB_DISCOVERY_MINIMAL_PROMPT,
-} from "@/components/agent/prompts";
+import { JOB_DISCOVERY_SYSTEM_PROMPT } from "@/components/agent/prompts";
 import { searchAdzunaJobs, saveJobsToProfile } from "@/components/agent/tools";
 import { getFirecrawlMCPClient } from "@/lib/mcp";
 import { openai } from "@ai-sdk/openai";
@@ -25,20 +22,6 @@ export async function POST(request: NextRequest) {
     }
 
     const modelMessages = convertToModelMessages(messages);
-
-    /**
-     * Prompt A/B Testing Toggle
-     *
-     * Switch between verbose and minimal prompts to test performance:
-     * - false (default): Uses JOB_DISCOVERY_SYSTEM_PROMPT (160 lines, detailed instructions)
-     * - true: Uses JOB_DISCOVERY_MINIMAL_PROMPT (20 lines, concise instructions)
-     *
-     * Toggle this flag to experiment with different prompt strategies.
-     */
-    const USE_MINIMAL_PROMPT = false;
-    const systemPrompt = USE_MINIMAL_PROMPT
-      ? JOB_DISCOVERY_MINIMAL_PROMPT
-      : JOB_DISCOVERY_SYSTEM_PROMPT;
 
     // Initialize Firecrawl MCP client
     console.log("🚀 Initializing Firecrawl MCP client for Job Discovery Agent...");
@@ -105,15 +88,15 @@ export async function POST(request: NextRequest) {
 
     const result = streamText({
       model: openai("gpt-5"),
-      system: systemPrompt,
+      system: JOB_DISCOVERY_SYSTEM_PROMPT,
       messages: modelMessages,
       tools: allTools,
       stopWhen: stepCountIs(10), // Allow up to 10 tool calls for discovery
       providerOptions: {
         openai: {
-          reasoning_effort: "low",
+          reasoning_effort: "minimal",
           textVerbosity: "low",
-          reasoningSummary: "detailed",
+          reasoningSummary: "auto",
         },
       },
     });

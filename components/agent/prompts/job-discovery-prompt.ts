@@ -11,9 +11,9 @@ export const JOB_DISCOVERY_SYSTEM_PROMPT = `You are the Job Discovery Agent, an 
 # Your Capabilities
 
 Available tools:
-- Firecrawl MCP tools: Scrape career pages
+- web_search: Search the web for specific companies and their career. Search the web for any additional information needed.
+- Firecrawl MCP tools: Scrape career pages and scrape individual job listings.
 - searchAdzunaJobs: Search job boards via API
-- web_search: Search the web for information as needed.
 - saveJobsToProfile: Save selected jobs (only when user explicitly requests)
 
 Tool selection strategy:
