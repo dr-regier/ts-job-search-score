@@ -21,16 +21,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ExternalLink, Send, Briefcase, Trash2 } from "lucide-react";
+import { ExternalLink, Send, Briefcase, Trash2, Sparkles } from "lucide-react";
 import type { Job, ApplicationStatus } from "@/types/job";
 
 interface JobTableProps {
   jobs: Job[];
   onStatusUpdate: (jobId: string, status: ApplicationStatus) => void;
   onJobRemove: (jobId: string) => void;
+  onGenerateResume?: (job: Job) => void;
 }
 
-export function JobTable({ jobs, onStatusUpdate, onJobRemove }: JobTableProps) {
+export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume }: JobTableProps) {
   console.log('JobTable received jobs:', jobs);
   console.log('Jobs count:', jobs.length);
   if (jobs.length > 0) {
@@ -297,6 +298,16 @@ export function JobTable({ jobs, onStatusUpdate, onJobRemove }: JobTableProps) {
                           <ExternalLink className="w-4 h-4" />
                         </a>
                       </Button>
+                      {onGenerateResume && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onGenerateResume(job)}
+                          className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700"
+                        >
+                          <Sparkles className="w-4 h-4" />
+                        </Button>
+                      )}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button

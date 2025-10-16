@@ -6,12 +6,14 @@ import { HeroSection } from "@/components/jobs/HeroSection";
 import { ActionCards } from "@/components/jobs/ActionCards";
 import { DashboardMetrics } from "@/components/jobs/DashboardMetrics";
 import { JobTable } from "@/components/jobs/JobTable";
+import { GenerateResumeDialog } from "@/components/jobs/GenerateResumeDialog";
 import { getJobs, updateJobStatus, deleteJob } from "@/lib/storage/jobs";
 import type { Job, ApplicationStatus } from "@/types/job";
 
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [generatingForJob, setGeneratingForJob] = useState<Job | null>(null);
 
   // Load jobs from localStorage on mount
   useEffect(() => {
@@ -46,6 +48,10 @@ export default function JobsPage() {
       // Reload jobs after removal
       setJobs(getJobs());
     }
+  };
+
+  const handleGenerateResume = (job: Job) => {
+    setGeneratingForJob(job);
   };
 
   if (isLoading) {
@@ -85,10 +91,18 @@ export default function JobsPage() {
               jobs={jobs}
               onStatusUpdate={handleStatusUpdate}
               onJobRemove={handleJobRemove}
+              onGenerateResume={handleGenerateResume}
             />
           </div>
         </div>
       </div>
+
+      {/* Generate Resume Dialog */}
+      <GenerateResumeDialog
+        job={generatingForJob}
+        open={generatingForJob !== null}
+        onOpenChange={(open) => !open && setGeneratingForJob(null)}
+      />
     </div>
   );
 }

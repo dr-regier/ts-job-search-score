@@ -8,6 +8,7 @@
 export { searchAdzunaJobs } from "./adzuna";
 export { saveJobsToProfile } from "./save-jobs";
 export { scoreJobsTool } from "./score-jobs";
+export { generateTailoredResumeTool, getResumeGenerationContext } from "./generate-resume";
 
 /**
  * Combined tools object for easy import
@@ -19,9 +20,11 @@ export { scoreJobsTool } from "./score-jobs";
 import { searchAdzunaJobs } from "./adzuna";
 import { saveJobsToProfile } from "./save-jobs";
 import { scoreJobsTool } from "./score-jobs";
+import { generateTailoredResumeTool } from "./generate-resume";
 
 export const agentTools = {
   searchAdzunaJobs,
   saveJobsToProfile,
   scoreJobsTool,
+  generateTailoredResumeTool,
 };

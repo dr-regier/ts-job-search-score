@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Home, User, Briefcase } from "lucide-react";
+import { Home, User, Briefcase, FileText } from "lucide-react";
 
 export function Header() {
   const pathname = usePathname();
@@ -33,6 +33,17 @@ export function Header() {
             <Link href="/jobs">
               <Briefcase className="w-4 h-4 mr-2" />
               Jobs
+            </Link>
+          </Button>
+
+          <Button
+            variant={pathname === "/resumes" ? "default" : "ghost"}
+            size="sm"
+            asChild
+          >
+            <Link href="/resumes">
+              <FileText className="w-4 h-4 mr-2" />
+              Resumes
             </Link>
           </Button>
 
