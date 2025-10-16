@@ -4,7 +4,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Settings, Search, Target, BarChart3 } from "lucide-react";
 
-export function ActionCards() {
+interface ActionCardsProps {
+  onScoreJobsClick?: () => void;
+}
+
+export function ActionCards({ onScoreJobsClick }: ActionCardsProps) {
   const cards = [
     {
       title: "Profile Setup",
@@ -12,6 +16,7 @@ export function ActionCards() {
       href: "/profile",
       borderColor: "border-l-blue-500",
       icon: Settings,
+      type: "link" as const,
     },
     {
       title: "Discover Jobs",
@@ -19,13 +24,14 @@ export function ActionCards() {
       href: "/",
       borderColor: "border-l-blue-500",
       icon: Search,
+      type: "link" as const,
     },
     {
       title: "Score Jobs",
       description: "Get AI-powered fit analysis for your saved jobs",
-      href: "/",
       borderColor: "border-l-blue-500",
       icon: Target,
+      type: "button" as const,
     },
     {
       title: "View Dashboard",
@@ -33,6 +39,7 @@ export function ActionCards() {
       href: "/jobs",
       borderColor: "border-l-blue-500",
       icon: BarChart3,
+      type: "link" as const,
     },
   ];
 
@@ -54,11 +61,21 @@ export function ActionCards() {
           <p className="text-gray-600 text-sm mb-4">
             {card.description}
           </p>
-          <Button asChild variant="outline" className="w-full">
-            <Link href={card.href}>
+          {card.type === "button" ? (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={onScoreJobsClick}
+            >
               Go to {card.title}
-            </Link>
-          </Button>
+            </Button>
+          ) : (
+            <Button asChild variant="outline" className="w-full">
+              <Link href={card.href || "/"}>
+                Go to {card.title}
+              </Link>
+            </Button>
+          )}
         </div>
       ))}
     </div>

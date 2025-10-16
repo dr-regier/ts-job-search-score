@@ -7,6 +7,7 @@ import { ActionCards } from "@/components/jobs/ActionCards";
 import { DashboardMetrics } from "@/components/jobs/DashboardMetrics";
 import { JobTable } from "@/components/jobs/JobTable";
 import { GenerateResumeDialog } from "@/components/jobs/GenerateResumeDialog";
+import { ScoreJobsDialog } from "@/components/jobs/ScoreJobsDialog";
 import { getJobs, updateJobStatus, deleteJob } from "@/lib/storage/jobs";
 import type { Job, ApplicationStatus } from "@/types/job";
 
@@ -14,6 +15,7 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [generatingForJob, setGeneratingForJob] = useState<Job | null>(null);
+  const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
   // Load jobs from localStorage on mount
   useEffect(() => {
@@ -54,6 +56,15 @@ export default function JobsPage() {
     setGeneratingForJob(job);
   };
 
+  const handleOpenScoreDialog = () => {
+    setScoreDialogOpen(true);
+  };
+
+  const handleScoreComplete = () => {
+    // Reload jobs after scoring completes
+    setJobs(getJobs());
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -79,7 +90,7 @@ export default function JobsPage() {
           <HeroSection />
 
           {/* Action Cards */}
-          <ActionCards />
+          <ActionCards onScoreJobsClick={handleOpenScoreDialog} />
 
           {/* Dashboard Metrics */}
           <DashboardMetrics jobs={jobs} />
@@ -102,6 +113,13 @@ export default function JobsPage() {
         job={generatingForJob}
         open={generatingForJob !== null}
         onOpenChange={(open) => !open && setGeneratingForJob(null)}
+      />
+
+      {/* Score Jobs Dialog */}
+      <ScoreJobsDialog
+        open={scoreDialogOpen}
+        onOpenChange={setScoreDialogOpen}
+        onScoreComplete={handleScoreComplete}
       />
     </div>
   );
