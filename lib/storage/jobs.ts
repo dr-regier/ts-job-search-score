@@ -273,3 +273,31 @@ export function getUnsavedJobs(): Job[] {
   const jobs = getJobs();
   return jobs.filter((job) => job.applicationStatus === undefined);
 }
+
+/**
+ * Saves tailored resume data to a specific job
+ *
+ * @param jobId - ID of the job to update
+ * @param resumeData - Tailored resume data to save
+ * @returns true if update was successful, false if job not found or error
+ */
+export function saveJobResume(
+  jobId: string,
+  resumeData: Job["tailoredResume"]
+): boolean {
+  const jobs = getJobs();
+
+  const jobIndex = jobs.findIndex((job) => job.id === jobId);
+
+  if (jobIndex === -1) {
+    console.warn(`Cannot save resume: job with ID ${jobId} not found`);
+    return false;
+  }
+
+  jobs[jobIndex] = {
+    ...jobs[jobIndex],
+    tailoredResume: resumeData,
+  };
+
+  return saveJobs(jobs);
+}

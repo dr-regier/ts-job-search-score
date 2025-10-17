@@ -25,7 +25,7 @@ import { Copy, Download, Sparkles, CheckCircle, AlertCircle } from "lucide-react
 import type { Job } from "@/types/job";
 import type { Resume } from "@/types/resume";
 import { getResumes, getResumeById } from "@/lib/storage/resumes";
-import { getJobById } from "@/lib/storage/jobs";
+import { getJobById, saveJobResume } from "@/lib/storage/jobs";
 
 interface GenerateResumeDialogProps {
   job: Job | null;
@@ -116,9 +116,27 @@ export function GenerateResumeDialog({
       if (toolOutput?.action === 'generated' && toolOutput.tailoredResume) {
         setGeneratedResume(toolOutput);
         setIsGenerating(false);
+
+        // Save resume to job in localStorage
+        if (job?.id) {
+          const resumeData: Job["tailoredResume"] = {
+            content: toolOutput.tailoredResume.content,
+            masterResumeName: toolOutput.tailoredResume.masterResumeName,
+            generatedAt: toolOutput.tailoredResume.generatedAt,
+            changes: toolOutput.changes || [],
+            matchAnalysis: toolOutput.matchAnalysis || {
+              alignmentScore: 0,
+              addressedRequirements: [],
+              remainingGaps: [],
+              recommendations: [],
+            },
+          };
+
+          saveJobResume(job.id, resumeData);
+        }
       }
     });
-  }, [messages]);
+  }, [messages, job?.id]);
 
   const handleGenerate = async () => {
     if (!selectedResumeId || !job?.id) {

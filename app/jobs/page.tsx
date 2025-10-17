@@ -7,6 +7,7 @@ import { ActionCards } from "@/components/jobs/ActionCards";
 import { DashboardMetrics } from "@/components/jobs/DashboardMetrics";
 import { JobTable } from "@/components/jobs/JobTable";
 import { GenerateResumeDialog } from "@/components/jobs/GenerateResumeDialog";
+import { ViewResumeDialog } from "@/components/jobs/ViewResumeDialog";
 import { ScoreJobsDialog } from "@/components/jobs/ScoreJobsDialog";
 import { getJobs, updateJobStatus, deleteJob } from "@/lib/storage/jobs";
 import type { Job, ApplicationStatus } from "@/types/job";
@@ -15,6 +16,7 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [generatingForJob, setGeneratingForJob] = useState<Job | null>(null);
+  const [viewingResumeForJob, setViewingResumeForJob] = useState<Job | null>(null);
   const [scoreDialogOpen, setScoreDialogOpen] = useState(false);
 
   // Load jobs from localStorage on mount
@@ -54,6 +56,10 @@ export default function JobsPage() {
 
   const handleGenerateResume = (job: Job) => {
     setGeneratingForJob(job);
+  };
+
+  const handleViewResume = (job: Job) => {
+    setViewingResumeForJob(job);
   };
 
   const handleOpenScoreDialog = () => {
@@ -103,6 +109,7 @@ export default function JobsPage() {
               onStatusUpdate={handleStatusUpdate}
               onJobRemove={handleJobRemove}
               onGenerateResume={handleGenerateResume}
+              onViewResume={handleViewResume}
             />
           </div>
         </div>
@@ -112,7 +119,20 @@ export default function JobsPage() {
       <GenerateResumeDialog
         job={generatingForJob}
         open={generatingForJob !== null}
-        onOpenChange={(open) => !open && setGeneratingForJob(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setGeneratingForJob(null);
+            // Reload jobs to show newly saved resume
+            setJobs(getJobs());
+          }
+        }}
+      />
+
+      {/* View Resume Dialog */}
+      <ViewResumeDialog
+        job={viewingResumeForJob}
+        open={viewingResumeForJob !== null}
+        onOpenChange={(open) => !open && setViewingResumeForJob(null)}
       />
 
       {/* Score Jobs Dialog */}

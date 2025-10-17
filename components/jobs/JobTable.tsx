@@ -21,7 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ExternalLink, Send, Briefcase, Trash2, Sparkles, ChevronDown, AlertCircle } from "lucide-react";
+import { ExternalLink, Send, Briefcase, Trash2, Sparkles, ChevronDown, AlertCircle, FileText } from "lucide-react";
 import { ScoreBreakdown } from "@/components/jobs/ScoreBreakdown";
 import type { Job, ApplicationStatus } from "@/types/job";
 
@@ -30,9 +30,10 @@ interface JobTableProps {
   onStatusUpdate: (jobId: string, status: ApplicationStatus) => void;
   onJobRemove: (jobId: string) => void;
   onGenerateResume?: (job: Job) => void;
+  onViewResume?: (job: Job) => void;
 }
 
-export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume }: JobTableProps) {
+export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume, onViewResume }: JobTableProps) {
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("score-desc");
@@ -301,20 +302,34 @@ export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume }
                           </td>
                           <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                             <div className="flex gap-2 justify-end">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                asChild
-                                className="hover:bg-gray-100"
-                              >
-                                <a
-                                  href={job.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+                              {job.tailoredResume ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onViewResume?.(job);
+                                  }}
+                                  className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700"
                                 >
-                                  <ExternalLink className="w-4 h-4" />
-                                </a>
-                              </Button>
+                                  <FileText className="w-4 h-4" />
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  asChild
+                                  className="hover:bg-gray-100"
+                                >
+                                  <a
+                                    href={job.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <ExternalLink className="w-4 h-4" />
+                                  </a>
+                                </Button>
+                              )}
                               {onGenerateResume && (
                                 <Button
                                   variant="outline"
