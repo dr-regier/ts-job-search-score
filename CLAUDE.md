@@ -53,10 +53,16 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
     - `components/agent/tools/` - Custom AI SDK tools
 - `lib/` - Core utilities and integrations
   - `lib/mcp/` - MCP client implementation for Firecrawl
-  - `lib/storage/` - localStorage utilities (profile.ts, jobs.ts, resumes.ts)
+  - `lib/storage/` - localStorage utilities with SSR-safe operations
+    - `profile.ts` - User profile CRUD operations
+    - `jobs.ts` - Job management including `saveJobResume()` for persisting tailored resumes
+    - `resumes.ts` - Resume library management with automatic section parsing
   - `lib/context/` - React Context providers for global state management
   - `lib/utils.ts` - Utility functions including `cn()` for className merging
-- `types/` - TypeScript type definitions (job.ts, profile.ts, resume.ts)
+- `types/` - TypeScript type definitions
+  - `job.ts` - Job interface with scoring data and tailoredResume field for persisted resumes
+  - `profile.ts` - User profile and scoring weights interfaces
+  - `resume.ts` - Resume library interfaces with section parsing
 
 ### AI Integration
 
@@ -222,12 +228,13 @@ const wrappedTools = Object.fromEntries(
 
 **Generate Tailored Resume Tool** (`components/agent/tools/generate-resume.ts`)
 - Generates tailored resumes for specific job opportunities
-- Input: jobId, masterResumeId, tailoredResumeContent, changes array, matchAnalysis
+- Input: jobId, masterResumeId, jobTitle, jobCompany, masterResumeName, tailoredResumeContent, changes array, matchAnalysis
 - Output: Tailored resume with action: "generated", change documentation, alignment score
-- Helper function: `getResumeGenerationContext(jobId, masterResumeId)` fetches job, resume, profile from localStorage
+- Helper function: `getResumeGenerationContext(job, masterResume)` accepts Job and Resume objects (not IDs)
 - Context injection: Job details, requirements, master resume content, user profile formatted as string
+- Architecture: Client passes job/resume objects to server; server passes to agent; agent returns complete data
 - Used by Resume Generator Agent to return tailored resume results
-- Client-side handler displays resume with copy/download functionality
+- Client-side handler automatically saves resume to job via `saveJobResume()` in localStorage
 - Changes tracked by type: reorder, keyword, emphasis, summary, trim, section_move
 
 #### Creating New Tools and Agents
@@ -407,8 +414,15 @@ Display tool execution states using AI Elements:
   - Large color-coded score display
   - Priority badges (pill-shaped with proper colors)
   - Status dropdown per row with localStorage sync
-  - Action buttons: View (external link), Generate Resume (✨ sparkles icon), Remove (with confirmation dialog), Apply (external link)
+  - Expandable rows: Click any row to view detailed score breakdown, reasoning, and gaps
+  - Action buttons:
+    - View Resume (📄 FileText icon) - appears when tailored resume exists, opens ViewResumeDialog
+    - View Job (🔗 ExternalLink icon) - appears when no resume, links to job posting
+    - Generate Resume (✨ sparkles icon) - triggers GenerateResumeDialog
+    - Remove (🗑️ with confirmation dialog)
+    - Apply (external link to job posting)
   - Generate Resume button triggers GenerateResumeDialog with purple hover effect
+  - View Resume button triggers ViewResumeDialog with blue hover effect
   - Remove button uses AlertDialog for confirmation with destructive styling
   - Empty state with helpful message
   - Results counter
@@ -423,10 +437,26 @@ Display tool execution states using AI Elements:
 - **GenerateResumeDialog**: Two-phase dialog for resume generation
   - Selection phase: Job details display, resume dropdown selector, generate button
   - Generated phase: Match analysis, changes made, resume content viewer, copy/download buttons
-  - Uses useChat with custom transport to inject jobId and masterResumeId
+  - Uses useChat with custom transport to inject job and resume objects
+  - Uses refs to avoid React closure issues with stale state
   - Watches for tool results with action: "generated"
+  - Automatically saves generated resume to job in localStorage
   - Copy to clipboard functionality with success indicator
   - Download as .md file with sanitized filename
+- **ViewResumeDialog**: Display saved tailored resumes
+  - Shows previously generated resume for a job
+  - Match analysis with alignment score badge
+  - Changes made to master resume
+  - Full resume content viewer
+  - Copy/download functionality
+  - Recommendations and generation timestamp
+- **ScoreJobsDialog**: Batch job scoring interface
+  - Checkbox selection for jobs to score
+  - Select all/none functionality
+  - Unscored jobs filter option
+  - Uses Job Matching Agent to score selected jobs
+  - Real-time progress tracking
+  - Auto-refreshes jobs list after scoring
 
 #### **Resume Library** (`/resumes`)
 - Clean, professional design matching Profile page style

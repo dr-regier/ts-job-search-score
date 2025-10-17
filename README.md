@@ -30,7 +30,11 @@ An intelligent job search and matching system powered by multi-agent AI architec
   - Advanced filtering (by priority and status)
   - Multiple sorting options (score, date, company)
   - Status tracking per job (Saved → Applied → Interviewing → Offer/Rejected)
+  - **Expandable rows** - Click any job to view detailed score breakdown, reasoning, and gaps
+  - **Batch scoring** - Select multiple jobs to score at once via checkbox selection
+  - **View Resume** button (📄) - Appears when tailored resume exists, opens saved resume
   - **Generate Resume** button (✨) - Create tailored resumes for specific jobs
+  - **Resume persistence** - Generated resumes automatically saved to jobs
   - Job removal with confirmation dialog (permanently delete unwanted jobs)
   - Animated UI with professional design quality
   - Empty states with helpful guidance
@@ -48,6 +52,8 @@ An intelligent job search and matching system powered by multi-agent AI architec
   - Shows match analysis with alignment score and addressed requirements
   - Documents all changes (reordering, keyword integration, emphasis)
   - Identifies remaining gaps with recommendations
+  - **Automatically saves resume to job** for persistent access
+  - **View saved resumes** anytime via View Resume button (📄)
   - Copy to clipboard or download as .md file
   - Uses GPT-5 with reasoning_effort: 'medium' for quality output
 - **Navigation** - Unified header with easy access to Chat, Jobs, Resumes, and Profile pages
@@ -133,15 +139,20 @@ From the Jobs Dashboard (`/jobs`):
 - AI generates a tailored version emphasizing relevant experience
 - View match analysis, changes made, and alignment score
 - Copy to clipboard or download as .md file
+- **Resume is automatically saved to the job**
+- Click the 📄 FileText icon anytime to view the saved resume
 
 ### 7. Manage Your Applications
 Navigate to the Jobs Dashboard (`/jobs`):
 - View all saved jobs with scores and priorities
+- **Click any job row to expand** and view detailed score breakdown, reasoning, and gaps
 - Filter by priority (High/Medium/Low) or status
 - Sort by score, date, or company
+- **Batch score jobs** - Click "Score Jobs" button to select multiple jobs and score them at once
 - Update job status as you progress (Saved → Applied → Interviewing → Offer/Rejected)
+- **View tailored resumes** - Click 📄 icon to see saved resume (appears after generation)
 - **Remove unwanted jobs** - Click the trash icon to permanently delete a job (with confirmation)
-- Click "View" to see job posting or "Apply" to apply directly
+- Click "Apply" to visit job posting directly
 - Track metrics: total jobs, priority counts, average score
 
 ## Resources
@@ -189,8 +200,9 @@ Navigate to the Jobs Dashboard (`/jobs`):
    ┌───────────────────────────────────────────────────────────────┐
    │              localStorage (Shared State)                      │
    │  - User Profile                                               │
-   │  - Saved Jobs (with/without scores)                           │
+   │  - Saved Jobs (with/without scores, with/without resumes)     │
    │  - Master Resumes                                             │
+   │  - Tailored Resumes (saved to jobs)                           │
    └───────────────────────────────────────────────────────────────┘
 
 Key Features:
