@@ -112,7 +112,7 @@ export function ScoreJobsDialog({
         }
       }
     });
-  }, [messages, onScoreComplete]);
+  }, [messages]);
 
   const handleScore = async () => {
     if (!profile || jobs.length === 0) return;
