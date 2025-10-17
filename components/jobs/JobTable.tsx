@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,11 +21,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import { ExternalLink, Send, Briefcase, Trash2, Sparkles, ChevronDown, AlertCircle } from "lucide-react";
 import { ScoreBreakdown } from "@/components/jobs/ScoreBreakdown";
 import type { Job, ApplicationStatus } from "@/types/job";
@@ -38,12 +33,6 @@ interface JobTableProps {
 }
 
 export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume }: JobTableProps) {
-  console.log('JobTable received jobs:', jobs);
-  console.log('Jobs count:', jobs.length);
-  if (jobs.length > 0) {
-    console.log('Sample job structure:', jobs[0]);
-  }
-
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("score-desc");
@@ -98,9 +87,6 @@ export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume }
           return 0;
       }
     });
-
-    console.log('Filtered jobs:', filtered);
-    console.log('Filtered count:', filtered.length);
 
     return filtered;
   }, [jobs, filterPriority, filterStatus, sortBy]);
@@ -255,19 +241,13 @@ export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume }
               {filteredAndSortedJobs.map((job, index) => {
                 const isExpanded = expandedJobs.has(job.id);
                 return (
-                  <Collapsible
-                    key={job.id}
-                    open={isExpanded}
-                    onOpenChange={() => toggleJobExpansion(job.id)}
-                    asChild
-                  >
-                    <>
-                      <CollapsibleTrigger asChild>
-                        <tr
-                          className={`border-t border-gray-200 hover:bg-blue-50 transition-colors cursor-pointer ${
-                            isExpanded ? "bg-blue-50" : ""
-                          }`}
-                        >
+                  <React.Fragment key={job.id}>
+                    <tr
+                      className={`border-t border-gray-200 hover:bg-blue-50 transition-colors cursor-pointer ${
+                        isExpanded ? "bg-blue-50" : ""
+                      }`}
+                      onClick={() => toggleJobExpansion(job.id)}
+                    >
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">
                               <ChevronDown
@@ -394,10 +374,9 @@ export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume }
                               </Button>
                             </div>
                           </td>
-                        </tr>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent asChild>
-                        <tr className="border-t border-gray-100 bg-gray-50">
+                    </tr>
+                    {isExpanded && (
+                      <tr className="border-t border-gray-100 bg-gray-50">
                           <td colSpan={7} className="px-6 py-6">
                             {job.score !== undefined ? (
                               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -465,11 +444,10 @@ export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume }
                                 </p>
                               </div>
                             )}
-                          </td>
-                        </tr>
-                      </CollapsibleContent>
-                    </>
-                  </Collapsible>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </tbody>

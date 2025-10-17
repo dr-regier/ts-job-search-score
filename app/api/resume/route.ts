@@ -15,7 +15,7 @@ import { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, jobId, masterResumeId } = await request.json();
+    const { messages, jobId, masterResumeId, job, masterResume } = await request.json();
 
     console.log('\n' + '═'.repeat(60));
     console.log('📝 RESUME GENERATOR AGENT ACTIVATED');
@@ -43,21 +43,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!job) {
+      console.log('❌ Validation failed: Job object is required');
+      return new Response(
+        "Job data is required. Please provide the job details.",
+        { status: 400 }
+      );
+    }
+
+    if (!masterResume) {
+      console.log('❌ Validation failed: Master resume object is required');
+      return new Response(
+        "Master resume data is required. Please provide the resume content.",
+        { status: 400 }
+      );
+    }
+
     console.log(`✅ Validation passed:`);
-    console.log(`   - Job ID: ${jobId}`);
-    console.log(`   - Master Resume ID: ${masterResumeId}`);
+    console.log(`   - Job: ${job.title} at ${job.company}`);
+    console.log(`   - Master Resume: ${masterResume.name}`);
     console.log(`   - User messages: ${messages.length}`);
 
     // Get context for resume generation (job details + master resume + profile)
-    console.log('\n📋 Fetching context for resume generation...');
-    const context = getResumeGenerationContext(jobId, masterResumeId);
+    console.log('\n📋 Building context for resume generation...');
+    const context = getResumeGenerationContext(job, masterResume);
 
     if (context.startsWith('Error:')) {
       console.log(`❌ ${context}`);
       return new Response(context, { status: 400 });
     }
 
-    console.log('✅ Context retrieved successfully');
+    console.log('✅ Context built successfully');
 
     const modelMessages = convertToModelMessages(messages);
 

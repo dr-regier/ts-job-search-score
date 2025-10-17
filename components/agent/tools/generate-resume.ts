@@ -6,9 +6,9 @@
  */
 
 import { z } from "zod";
-import { getJobById } from "@/lib/storage/jobs";
-import { getResumeById } from "@/lib/storage/resumes";
 import { getProfile } from "@/lib/storage/profile";
+import type { Job } from "@/types/job";
+import type { Resume } from "@/types/resume";
 
 /**
  * Generate Tailored Resume Tool
@@ -24,10 +24,19 @@ export const generateTailoredResumeTool = {
   inputSchema: z.object({
     jobId: z
       .string()
-      .describe("ID of the job to tailor the resume for"),
+      .describe("ID of the job to tailor the resume for (use exact ID from context)"),
     masterResumeId: z
       .string()
-      .describe("ID of the master resume to use as base"),
+      .describe("ID of the master resume to use as base (use exact ID from context)"),
+    jobTitle: z
+      .string()
+      .describe("Job title from the context"),
+    jobCompany: z
+      .string()
+      .describe("Company name from the context"),
+    masterResumeName: z
+      .string()
+      .describe("Master resume name from the context"),
     tailoredResumeContent: z
       .string()
       .describe(
@@ -83,12 +92,18 @@ export const generateTailoredResumeTool = {
   execute: async ({
     jobId,
     masterResumeId,
+    jobTitle,
+    jobCompany,
+    masterResumeName,
     tailoredResumeContent,
     changes,
     matchAnalysis,
   }: {
     jobId: string;
     masterResumeId: string;
+    jobTitle: string;
+    jobCompany: string;
+    masterResumeName: string;
     tailoredResumeContent: string;
     changes: Array<{ type: string; description: string }>;
     matchAnalysis: {
@@ -99,48 +114,29 @@ export const generateTailoredResumeTool = {
     };
   }) => {
     console.log(`📝 Generate Resume Tool called`);
+    console.log(`   Job: ${jobTitle} at ${jobCompany}`);
     console.log(`   Job ID: ${jobId}`);
+    console.log(`   Master Resume: ${masterResumeName}`);
     console.log(`   Master Resume ID: ${masterResumeId}`);
-
-    // Fetch job details
-    const job = getJobById(jobId);
-    if (!job) {
-      console.error(`❌ Job not found: ${jobId}`);
-      throw new Error(`Job with ID ${jobId} not found`);
-    }
-
-    // Fetch master resume
-    const masterResume = getResumeById(masterResumeId);
-    if (!masterResume) {
-      console.error(`❌ Resume not found: ${masterResumeId}`);
-      throw new Error(`Resume with ID ${masterResumeId} not found`);
-    }
-
-    // Fetch user profile (for reference)
-    const userProfile = getProfile();
-
-    console.log(`✅ Data retrieved successfully`);
-    console.log(`   Job: ${job.title} at ${job.company}`);
-    console.log(`   Master Resume: ${masterResume.name}`);
     console.log(`   Changes Made: ${changes.length}`);
     console.log(`   Alignment Score: ${matchAnalysis.alignmentScore}/100`);
 
-    // Return the tailored resume and analysis
+    // Return the tailored resume and analysis (no localStorage access needed)
     return {
       action: "generated",
       tailoredResume: {
         content: tailoredResumeContent,
-        masterResumeName: masterResume.name,
+        masterResumeName: masterResumeName,
         targetJob: {
-          title: job.title,
-          company: job.company,
-          id: job.id,
+          title: jobTitle,
+          company: jobCompany,
+          id: jobId,
         },
         generatedAt: new Date().toISOString(),
       },
       changes,
       matchAnalysis,
-      message: `Generated tailored resume for ${job.title} at ${job.company} (Alignment: ${matchAnalysis.alignmentScore}/100)`,
+      message: `Generated tailored resume for ${jobTitle} at ${jobCompany} (Alignment: ${matchAnalysis.alignmentScore}/100)`,
     };
   },
 };
@@ -150,25 +146,30 @@ export const generateTailoredResumeTool = {
  *
  * This is called at the beginning of the agent conversation to provide
  * all necessary context for resume generation.
+ *
+ * Note: This function is called server-side, so it receives job and resume
+ * objects directly instead of fetching from localStorage (which is client-only).
  */
 export function getResumeGenerationContext(
-  jobId: string,
-  masterResumeId: string
+  job: Job,
+  masterResume: Resume
 ): string {
-  const job = getJobById(jobId);
-  const masterResume = getResumeById(masterResumeId);
   const userProfile = getProfile();
 
   if (!job) {
-    return `Error: Job with ID ${jobId} not found. Please provide a valid job ID from the user's saved jobs.`;
+    return `Error: Job data is required. Please provide job details.`;
   }
 
   if (!masterResume) {
-    return `Error: Resume with ID ${masterResumeId} not found. Please provide a valid resume ID from the user's resume library.`;
+    return `Error: Master resume data is required. Please provide resume content.`;
   }
 
   return `
 # Resume Generation Context
+
+## IMPORTANT: Use These IDs When Calling generateTailoredResume Tool
+**Job ID:** ${job.id}
+**Master Resume ID:** ${masterResume.id}
 
 ## Target Job
 **Title:** ${job.title}
@@ -241,6 +242,8 @@ ${userProfile.dealBreakers ? `**Deal Breakers:** ${userProfile.dealBreakers}` : 
 
 ---
 
+## Instructions
+
 Now, tailor the master resume for this specific job opportunity. Remember:
 - ONLY use real experience from the master resume
 - Reorder content to emphasize job-relevant experience
@@ -248,6 +251,12 @@ Now, tailor the master resume for this specific job opportunity. Remember:
 - Maintain the candidate's authentic voice
 - Keep to 1-2 pages
 - Document all changes made
+
+**CRITICAL:** When calling the generateTailoredResume tool, you MUST use the EXACT IDs provided above:
+- jobId: "${job.id}"
+- masterResumeId: "${masterResume.id}"
+
+Do NOT create your own IDs or modify these values. Use them exactly as shown.
 
 Use the generateTailoredResume tool to return your tailored resume with change analysis.
 `;

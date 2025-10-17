@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,8 @@ import { Badge } from "@/components/ui/badge";
 import { Copy, Download, Sparkles, CheckCircle, AlertCircle } from "lucide-react";
 import type { Job } from "@/types/job";
 import type { Resume } from "@/types/resume";
-import { getResumes } from "@/lib/storage/resumes";
+import { getResumes, getResumeById } from "@/lib/storage/resumes";
+import { getJobById } from "@/lib/storage/jobs";
 
 interface GenerateResumeDialogProps {
   job: Job | null;
@@ -43,6 +44,19 @@ export function GenerateResumeDialog({
   const [generatedResume, setGeneratedResume] = useState<any>(null);
   const [copySuccess, setCopySuccess] = useState(false);
 
+  // Use refs to store current values for the transport (avoid stale closure)
+  const selectedResumeIdRef = useRef<string>("");
+  const jobIdRef = useRef<string | undefined>(undefined);
+
+  // Update refs when values change
+  useEffect(() => {
+    selectedResumeIdRef.current = selectedResumeId;
+  }, [selectedResumeId]);
+
+  useEffect(() => {
+    jobIdRef.current = job?.id;
+  }, [job?.id]);
+
   // Load resumes when dialog opens
   useEffect(() => {
     if (open) {
@@ -56,17 +70,27 @@ export function GenerateResumeDialog({
     }
   }, [open]);
 
-  // Setup useChat for Resume Generator Agent
+  // Setup useChat for Resume Generator Agent with custom transport
   const { messages, sendMessage, setMessages } = useChat({
     transport: new DefaultChatTransport({
       api: '/api/resume',
       fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
-        // Inject jobId and masterResumeId into request body
+        // Get current values from refs (not closure)
+        const currentJobId = jobIdRef.current;
+        const currentResumeId = selectedResumeIdRef.current;
+
+        // Fetch job and resume objects from localStorage (client-side)
+        const jobObject = currentJobId ? getJobById(currentJobId) : null;
+        const resumeObject = currentResumeId ? getResumeById(currentResumeId) : null;
+
+        // Parse existing body and inject job data
         const body = JSON.parse(init?.body as string || '{}');
         const enhancedBody = {
           ...body,
-          jobId: job?.id,
-          masterResumeId: selectedResumeId,
+          jobId: currentJobId,
+          masterResumeId: currentResumeId,
+          job: jobObject,
+          masterResume: resumeObject,
         };
 
         return fetch(input, {
@@ -90,7 +114,6 @@ export function GenerateResumeDialog({
       const toolOutput = part.result || part.output;
 
       if (toolOutput?.action === 'generated' && toolOutput.tailoredResume) {
-        console.log('📝 Generated resume received:', toolOutput);
         setGeneratedResume(toolOutput);
         setIsGenerating(false);
       }
@@ -98,7 +121,9 @@ export function GenerateResumeDialog({
   }, [messages]);
 
   const handleGenerate = async () => {
-    if (!selectedResumeId) return;
+    if (!selectedResumeId || !job?.id) {
+      return;
+    }
 
     setIsGenerating(true);
     setGeneratedResume(null);
