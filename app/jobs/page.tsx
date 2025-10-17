@@ -84,8 +84,8 @@ export default function JobsPage() {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="space-y-8">
+      <div className="container mx-auto px-4 py-6 max-w-7xl">
+        <div className="space-y-4">
           {/* Hero Section */}
           <HeroSection />
 
@@ -97,7 +97,7 @@ export default function JobsPage() {
 
           {/* Jobs Table */}
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Jobs</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Your Jobs</h2>
             <JobTable
               jobs={jobs}
               onStatusUpdate={handleStatusUpdate}

@@ -77,21 +77,21 @@ export function DashboardMetrics({ jobs }: DashboardMetricsProps) {
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Overview</h2>
+      <h2 className="text-lg font-semibold text-gray-900 mb-3">Overview</h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
         {metrics.map((metric) => (
           <div
             key={metric.label}
-            className="bg-white border border-gray-200 rounded-lg p-4"
+            className="bg-white border border-gray-200 rounded-lg p-3"
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-1">
               <metric.icon className="w-4 h-4 text-gray-500" />
             </div>
-            <div className="text-3xl font-semibold text-gray-900 mb-1">
+            <div className="text-2xl font-semibold text-gray-900 mb-0.5">
               {metric.value}
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-xs text-gray-600">
               {metric.label}
             </div>
           </div>

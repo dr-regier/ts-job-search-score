@@ -21,7 +21,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ExternalLink, Send, Briefcase, Trash2, Sparkles } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { ExternalLink, Send, Briefcase, Trash2, Sparkles, ChevronDown, AlertCircle } from "lucide-react";
+import { ScoreBreakdown } from "@/components/jobs/ScoreBreakdown";
 import type { Job, ApplicationStatus } from "@/types/job";
 
 interface JobTableProps {
@@ -41,6 +47,19 @@ export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume }
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("score-desc");
+  const [expandedJobs, setExpandedJobs] = useState<Set<string>>(new Set());
+
+  const toggleJobExpansion = (jobId: string) => {
+    setExpandedJobs((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(jobId)) {
+        newSet.delete(jobId);
+      } else {
+        newSet.add(jobId);
+      }
+      return newSet;
+    });
+  };
 
   // Filter and sort jobs
   const filteredAndSortedJobs = useMemo(() => {
@@ -233,128 +252,226 @@ export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume }
               </tr>
             </thead>
             <tbody>
-              {filteredAndSortedJobs.map((job, index) => (
-                <tr
-                  key={job.id}
-                  className="border-t border-gray-200 hover:bg-blue-50 transition-colors cursor-pointer"
-                >
-                  <td className="px-6 py-4">
-                    <div className="font-semibold text-gray-900 text-sm">
-                      {job.title}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {job.company}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    {job.location}
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <div
-                      className={`text-2xl font-bold ${getScoreColor(
-                        job.score
-                      )}`}
-                    >
-                      {job.score !== undefined ? job.score : "—"}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    {getPriorityBadge(job.priority)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <Select
-                      value={job.applicationStatus || "saved"}
-                      onValueChange={(value) =>
-                        onStatusUpdate(job.id, value as ApplicationStatus)
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="saved">Saved</SelectItem>
-                        <SelectItem value="applied">Applied</SelectItem>
-                        <SelectItem value="interviewing">
-                          Interviewing
-                        </SelectItem>
-                        <SelectItem value="offer">Offer</SelectItem>
-                        <SelectItem value="rejected">Rejected</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2 justify-end">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="hover:bg-gray-100"
-                      >
-                        <a
-                          href={job.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+              {filteredAndSortedJobs.map((job, index) => {
+                const isExpanded = expandedJobs.has(job.id);
+                return (
+                  <Collapsible
+                    key={job.id}
+                    open={isExpanded}
+                    onOpenChange={() => toggleJobExpansion(job.id)}
+                    asChild
+                  >
+                    <>
+                      <CollapsibleTrigger asChild>
+                        <tr
+                          className={`border-t border-gray-200 hover:bg-blue-50 transition-colors cursor-pointer ${
+                            isExpanded ? "bg-blue-50" : ""
+                          }`}
                         >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </Button>
-                      {onGenerateResume && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => onGenerateResume(job)}
-                          className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700"
-                        >
-                          <Sparkles className="w-4 h-4" />
-                        </Button>
-                      )}
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="hover:bg-red-50 hover:border-red-300 hover:text-red-700"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Remove this job?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This will permanently remove "{job.title}" at {job.company} from your saved jobs.
-                              This action cannot be undone.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => onJobRemove(job.id)}
-                              className="bg-red-600 hover:bg-red-700"
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-2">
+                              <ChevronDown
+                                className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${
+                                  isExpanded ? "rotate-180" : ""
+                                }`}
+                              />
+                              <div className="font-semibold text-gray-900 text-sm">
+                                {job.title}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {job.company}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {job.location}
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            <div
+                              className={`text-2xl font-bold ${getScoreColor(
+                                job.score
+                              )}`}
                             >
-                              Remove Job
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                      <Button
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        asChild
-                      >
-                        <a
-                          href={job.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          <Send className="w-4 h-4 mr-1" />
-                          Apply
-                        </a>
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                              {job.score !== undefined ? job.score : "—"}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 text-center">
+                            {getPriorityBadge(job.priority)}
+                          </td>
+                          <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                            <Select
+                              value={job.applicationStatus || "saved"}
+                              onValueChange={(value) =>
+                                onStatusUpdate(job.id, value as ApplicationStatus)
+                              }
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="saved">Saved</SelectItem>
+                                <SelectItem value="applied">Applied</SelectItem>
+                                <SelectItem value="interviewing">
+                                  Interviewing
+                                </SelectItem>
+                                <SelectItem value="offer">Offer</SelectItem>
+                                <SelectItem value="rejected">Rejected</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                asChild
+                                className="hover:bg-gray-100"
+                              >
+                                <a
+                                  href={job.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </a>
+                              </Button>
+                              {onGenerateResume && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onGenerateResume(job);
+                                  }}
+                                  className="hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700"
+                                >
+                                  <Sparkles className="w-4 h-4" />
+                                </Button>
+                              )}
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="hover:bg-red-50 hover:border-red-300 hover:text-red-700"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Remove this job?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      This will permanently remove "{job.title}" at {job.company} from your saved jobs.
+                                      This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => onJobRemove(job.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Remove Job
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                              <Button
+                                size="sm"
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                                asChild
+                              >
+                                <a
+                                  href={job.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  <Send className="w-4 h-4 mr-1" />
+                                  Apply
+                                </a>
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent asChild>
+                        <tr className="border-t border-gray-100 bg-gray-50">
+                          <td colSpan={7} className="px-6 py-6">
+                            {job.score !== undefined ? (
+                              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                {/* Left column: Score Breakdown */}
+                                <div className="bg-white rounded-lg p-6 border border-gray-200">
+                                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                                    Score Breakdown
+                                  </h3>
+                                  <ScoreBreakdown
+                                    score={job.score}
+                                    scoreBreakdown={job.scoreBreakdown}
+                                  />
+                                </div>
+
+                                {/* Right column: Agent Analysis */}
+                                <div className="space-y-4">
+                                  {/* Agent Reasoning */}
+                                  {job.reasoning && (
+                                    <div className="bg-white rounded-lg p-6 border border-gray-200">
+                                      <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                                        Agent Reasoning
+                                      </h3>
+                                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                                        {job.reasoning}
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  {/* Skill Gaps */}
+                                  {job.gaps && job.gaps.length > 0 && (
+                                    <div className="bg-white rounded-lg p-6 border border-gray-200">
+                                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                        <AlertCircle className="w-5 h-5 text-amber-600" />
+                                        Skill Gaps
+                                      </h3>
+                                      <ul className="space-y-2">
+                                        {job.gaps.map((gap, idx) => (
+                                          <li
+                                            key={idx}
+                                            className="text-sm text-gray-700 flex items-start gap-2"
+                                          >
+                                            <span className="text-amber-600 mt-0.5">•</span>
+                                            <span>{gap}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
+
+                                  {/* Job Description */}
+                                  <div className="bg-white rounded-lg p-6 border border-gray-200">
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                                      Job Description
+                                    </h3>
+                                    <div className="text-sm text-gray-700 leading-relaxed max-h-64 overflow-y-auto whitespace-pre-wrap">
+                                      {job.description}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="bg-white rounded-lg p-6 border border-gray-200 text-center">
+                                <p className="text-gray-600">
+                                  This job hasn&apos;t been scored yet. Use the Score Jobs feature to analyze this position.
+                                </p>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      </CollapsibleContent>
+                    </>
+                  </Collapsible>
+                );
+              })}
             </tbody>
           </table>
         </div>
