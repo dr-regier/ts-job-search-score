@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,8 @@ export function ScoreJobsDialog({
   const [isScoring, setIsScoring] = useState(false);
   const [scoredResults, setScoredResults] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(new Set());
+  const selectedJobIdsRef = useRef<Set<string>>(new Set());
 
   // Load jobs and profile when dialog opens
   useEffect(() => {
@@ -47,6 +50,14 @@ export function ScoreJobsDialog({
       // Reset state
       setScoredResults(null);
       setError(null);
+
+      // Initialize selection with unscored jobs (jobs without a score)
+      const unscoredJobIds = savedJobs
+        .filter(job => job.score === undefined)
+        .map(job => job.id);
+      const initialSelection = new Set(unscoredJobIds);
+      setSelectedJobIds(initialSelection);
+      selectedJobIdsRef.current = initialSelection;
 
       // Validation
       if (!userProfile) {
@@ -62,11 +73,15 @@ export function ScoreJobsDialog({
     transport: new DefaultChatTransport({
       api: '/api/match',
       fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
-        // Inject jobs and profile into request body
+        // Inject only selected jobs and profile into request body
         const body = JSON.parse(init?.body as string || '{}');
+        const allJobs = getJobs();
+        // Read from ref to get the current selection (avoids stale closure)
+        const selectedJobs = allJobs.filter(job => selectedJobIdsRef.current.has(job.id));
+
         const enhancedBody = {
           ...body,
-          jobs: getJobs(),
+          jobs: selectedJobs,
           profile: getProfile(),
         };
 
@@ -115,7 +130,7 @@ export function ScoreJobsDialog({
   }, [messages]);
 
   const handleScore = async () => {
-    if (!profile || jobs.length === 0) return;
+    if (!profile || selectedJobIds.size === 0) return;
 
     setIsScoring(true);
     setScoredResults(null);
@@ -124,8 +139,42 @@ export function ScoreJobsDialog({
 
     // Send message to trigger job scoring
     sendMessage({
-      text: `Please analyze and score all of my saved jobs against my profile.`,
+      text: `Please analyze and score the selected jobs against my profile.`,
     });
+  };
+
+  // Selection helper functions
+  const toggleJobSelection = (jobId: string) => {
+    const newSelection = new Set(selectedJobIds);
+    if (newSelection.has(jobId)) {
+      newSelection.delete(jobId);
+    } else {
+      newSelection.add(jobId);
+    }
+    setSelectedJobIds(newSelection);
+    selectedJobIdsRef.current = newSelection;
+  };
+
+  const selectAllJobs = () => {
+    const allJobIds = jobs.map(job => job.id);
+    const newSelection = new Set(allJobIds);
+    setSelectedJobIds(newSelection);
+    selectedJobIdsRef.current = newSelection;
+  };
+
+  const deselectAllJobs = () => {
+    const newSelection = new Set<string>();
+    setSelectedJobIds(newSelection);
+    selectedJobIdsRef.current = newSelection;
+  };
+
+  const selectOnlyUnscored = () => {
+    const unscoredJobIds = jobs
+      .filter(job => job.score === undefined)
+      .map(job => job.id);
+    const newSelection = new Set(unscoredJobIds);
+    setSelectedJobIds(newSelection);
+    selectedJobIdsRef.current = newSelection;
   };
 
   const handleClose = () => {
@@ -204,7 +253,7 @@ export function ScoreJobsDialog({
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-gray-900">
-                          Jobs to Score ({jobs.length})
+                          Jobs to Score ({selectedJobIds.size} selected / {jobs.length} total)
                         </h3>
                         {isScoring && (
                           <div className="flex items-center gap-2 text-sm text-blue-600">
@@ -213,23 +262,72 @@ export function ScoreJobsDialog({
                           </div>
                         )}
                       </div>
+
+                      {/* Selection Helper Buttons */}
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={selectAllJobs}
+                          disabled={isScoring}
+                          className="text-xs"
+                        >
+                          Select All
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={deselectAllJobs}
+                          disabled={isScoring}
+                          className="text-xs"
+                        >
+                          Deselect All
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={selectOnlyUnscored}
+                          disabled={isScoring}
+                          className="text-xs"
+                        >
+                          Only Unscored
+                        </Button>
+                      </div>
+
+                      {/* Job List with Checkboxes */}
                       <div className="space-y-2 max-h-64 overflow-y-auto">
                         {jobs.map((job) => (
                           <div
                             key={job.id}
-                            className="p-3 border border-gray-200 rounded-lg bg-white hover:border-gray-300 transition-colors"
+                            className={`p-3 border rounded-lg transition-colors ${
+                              selectedJobIds.has(job.id)
+                                ? 'border-blue-500 bg-blue-50'
+                                : 'border-gray-200 bg-white hover:border-gray-300'
+                            }`}
                           >
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <h4 className="font-medium text-gray-900">{job.title}</h4>
-                                <p className="text-sm text-gray-600">{job.company}</p>
-                                <p className="text-xs text-gray-500">{job.location}</p>
+                            <div className="flex items-start gap-3">
+                              <Checkbox
+                                checked={selectedJobIds.has(job.id)}
+                                onCheckedChange={() => toggleJobSelection(job.id)}
+                                disabled={isScoring}
+                                className="mt-1"
+                              />
+                              <div className="flex-1 flex items-start justify-between">
+                                <div>
+                                  <h4 className="font-medium text-gray-900">{job.title}</h4>
+                                  <p className="text-sm text-gray-600">{job.company}</p>
+                                  <p className="text-xs text-gray-500">{job.location}</p>
+                                </div>
+                                {job.score !== undefined ? (
+                                  <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-300">
+                                    Score: {job.score}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="ml-2 bg-gray-50 text-gray-600 border-gray-300">
+                                    Not scored
+                                  </Badge>
+                                )}
                               </div>
-                              {job.score !== undefined && (
-                                <Badge variant="outline" className="ml-2">
-                                  Score: {job.score}
-                                </Badge>
-                              )}
                             </div>
                           </div>
                         ))}
@@ -282,7 +380,7 @@ export function ScoreJobsDialog({
               </Button>
               <Button
                 onClick={handleScore}
-                disabled={!!error || isScoring || jobs.length === 0 || !profile}
+                disabled={!!error || isScoring || selectedJobIds.size === 0 || !profile}
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
               >
                 {isScoring ? (
@@ -293,7 +391,7 @@ export function ScoreJobsDialog({
                 ) : (
                   <>
                     <Target className="w-4 h-4 mr-2" />
-                    Score {jobs.length} Job{jobs.length !== 1 ? 's' : ''}
+                    Score {selectedJobIds.size} Job{selectedJobIds.size !== 1 ? 's' : ''}
                   </>
                 )}
               </Button>
