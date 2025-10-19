@@ -22,12 +22,13 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 
 - **Frontend**: Next.js 15, React 19, TypeScript
 - **AI/ML**: AI SDK 5 (Vercel), OpenAI GPT-5
+- **Backend**: Supabase (PostgreSQL database, Authentication, Storage)
 - **Integrations**:
   - Model Context Protocol (MCP) with Firecrawl for web scraping
   - Adzuna API for job board searches
 - **UI**: shadcn/ui (Radix UI + Tailwind CSS v4), AI Elements
 - **Forms**: react-hook-form 7.65+ with @hookform/resolvers and Zod validation
-- **State Management**: localStorage (no database/authentication)
+- **State Management**: Supabase with Row Level Security (RLS)
 - **Build Tools**: Turbopack, pnpm
 - **Icons**: Lucide React
 
@@ -207,13 +208,16 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - Icons: Home (Chat), Briefcase (Jobs), FileText (Resumes), User (Profile)
 - Consistent across all pages
 
-### 9. Data Persistence
-- **localStorage-based**: No database or authentication required
+### 9. Authentication & Data Persistence
+- **Supabase Authentication**: Email/password and Google OAuth
+- **Row Level Security (RLS)**: User data isolation at database level
+- **PostgreSQL Database**: Server-side persistence with triggers and constraints
+- **Supabase Storage**: Secure file storage for resume files
 - **User Profile**: Skills, salary range, preferences, scoring weights, createdVia
-- **Resumes**: Master resumes with content, format, and parsed sections
+- **Resumes**: Master resumes stored in database with files in Supabase Storage
 - **Jobs**: Discovered jobs with optional scores and application status
 - **Auto-refresh**: State updates after agent actions complete
-- **SSR-safe**: All storage utilities check for browser environment
+- **Middleware Protection**: Routes protected with automatic login redirect
 
 ## Custom Tools Implementation
 
@@ -405,6 +409,10 @@ ADZUNA_API_KEY          # Job board search
 - `ai` (5.0.44+): AI SDK with tool calling and streaming
 - `@ai-sdk/openai`, `@ai-sdk/react`: OpenAI integration and React hooks
 - `@modelcontextprotocol/sdk`: MCP client for Firecrawl
+- `@supabase/supabase-js` (2.75+): Supabase JavaScript client
+- `@supabase/ssr` (0.7+): Supabase SSR utilities for Next.js
+- `@supabase/auth-helpers-nextjs` (0.10+): Authentication helpers
+- `@supabase/auth-ui-react` (0.4+): Pre-built auth UI components
 - `react-hook-form` (7.65+): Form state management with validation
 - `@hookform/resolvers`: Integration between react-hook-form and validation libraries
 - `uuid`: Unique job ID generation
@@ -423,11 +431,12 @@ ADZUNA_API_KEY          # Job board search
   - Hosts both useChat hooks at context level
   - Chat persists across page navigation during browser session
   - Centralized state for savedJobs, userProfile, activeAgent
+  - Fetches data from Supabase API instead of localStorage
   - Provides clearChat() and handleSendMessage() methods
 - Implemented **dual `useChat` hooks** in single component for seamless coordination
 - **Intelligent routing system** with keyword-based intent detection
 - **Message stream merging** using React.useMemo for chronological display
-- Indirect coordination via shared state (localStorage)
+- Indirect coordination via shared state (Supabase database)
 - Demonstrated autonomous decision-making within each agent's domain
 - Clear separation of concerns (discovery vs. analysis vs. resume generation)
 - Graceful handling of edge cases (no profile, no saved jobs, no resumes)
@@ -470,18 +479,22 @@ ADZUNA_API_KEY          # Job board search
 - Streaming responses with real-time feedback
 - Collapsible reasoning blocks
 - Natural language commands throughout
+- **Authentication UI** with Supabase Auth and Google OAuth
+- **Protected routes** with automatic login redirect
 - **Form-based profile management** with react-hook-form + Zod validation
 - **Premium dashboard design** with animated components and professional polish
 - **Interactive filtering and sorting** with real-time updates
-- **Status tracking** with dropdown selects and localStorage sync
+- **Status tracking** with dropdown selects and database sync
 - **Resume library** with clean, minimal design matching profile page
 - **Two-phase dialog** for resume generation (selection → generated result)
-- **Resume persistence**: Generated resumes saved to jobs and viewable via ViewResumeDialog
+- **Resume persistence**: Generated resumes saved to database and viewable via ViewResumeDialog
 - **Conditional UI**: View Resume button appears when tailored resume exists
 - **Batch operations**: ScoreJobsDialog for selecting and scoring multiple jobs
 - **Copy/download functionality** for generated resumes
 - **Custom animations** (gradient-x, fade-in, slide-up, pulse-soft)
 - **Responsive design** with mobile-first approach
+- **Loading states** with spinners for all async operations
+- **Error handling** with user-friendly messages and retry buttons
 
 ## Learning Outcomes
 

@@ -59,13 +59,16 @@ An intelligent job search and matching system powered by multi-agent AI architec
 - **Navigation** - Unified header with easy access to Chat, Jobs, Resumes, and Profile pages
 
 ### Technical Features
-- **localStorage Persistence** - Save jobs, profiles, and resumes without needing a database
+- **Supabase Backend** - PostgreSQL database, authentication, and file storage
+- **Row Level Security (RLS)** - User data isolation at database level
+- **Email + Google OAuth** - Secure authentication with multiple providers
 - **TypeScript** - Full type safety across the entire application
 - **shadcn/ui Design System** - Clean, modern UI components with custom animations
 - **Responsive Design** - Mobile-first approach that scales beautifully to desktop
 - **Form Validation** - react-hook-form with Zod schemas for type-safe forms
-- **File Upload** - Support for markdown and text resume files with validation
+- **File Upload** - Supabase Storage for secure resume file management
 - **GPT-5 Integration** - Advanced AI reasoning for resume tailoring with reasoning_effort: 'medium'
+- **Protected Routes** - Middleware-based authentication with automatic redirects
 
 ## Setup
 
@@ -75,28 +78,47 @@ An intelligent job search and matching system powered by multi-agent AI architec
    pnpm install
    ```
 
-2. **Create `.env.local` file with required API keys:**
+2. **Set up Supabase:**
+
+   - Create a free account at [supabase.com](https://supabase.com)
+   - Create a new project
+   - Run the database schema from `/supabase/schema.sql` in the SQL Editor
+   - Create a storage bucket named `resumes` (set to Private)
+   - Configure storage policies as described in `SUPABASE_MIGRATION.md`
+   - (Optional) Enable Google OAuth in Authentication → Providers
+
+3. **Create `.env.local` file with required API keys:**
 
    ```bash
+   # AI APIs
    OPENAI_API_KEY=your_openai_api_key_here
    FIRECRAWL_API_KEY=your_firecrawl_api_key_here
    ADZUNA_APP_ID=your_adzuna_app_id_here
    ADZUNA_API_KEY=your_adzuna_api_key_here
+
+   # Supabase Configuration
+   NEXT_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
    ```
 
    **Where to get API keys:**
    - **OpenAI** - [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
    - **Firecrawl** - [https://firecrawl.dev](https://firecrawl.dev)
    - **Adzuna** - [https://developer.adzuna.com](https://developer.adzuna.com)
+   - **Supabase** - Project Settings → API in your Supabase dashboard
 
-3. **Start development server:**
+4. **Start development server:**
    ```bash
    pnpm dev
    ```
 
-4. **Open [http://localhost:3000](http://localhost:3000)** to start using the job search agent.
+5. **Open [http://localhost:3000](http://localhost:3000)** and sign up/login to start using the job search agent.
 
 ## Usage
+
+### 0. Sign Up / Login
+- Create an account with email/password or Google OAuth
+- Your data is securely stored in Supabase and isolated by user
 
 ### 1. Create Your Profile
 Navigate to `/profile` or click "Profile" in the header:
@@ -198,11 +220,15 @@ Navigate to the Jobs Dashboard (`/jobs`):
        │ 2) Save               │ 4) Update scores       │ 6) Return tailored
        ↓                       ↓                        ↓
    ┌───────────────────────────────────────────────────────────────┐
-   │              localStorage (Shared State)                      │
-   │  - User Profile                                               │
-   │  - Saved Jobs (with/without scores, with/without resumes)     │
-   │  - Master Resumes                                             │
-   │  - Tailored Resumes (saved to jobs)                           │
+   │              Supabase (Shared State)                          │
+   │  - PostgreSQL Database                                        │
+   │    • User Profile (with RLS)                                  │
+   │    • Saved Jobs (with/without scores, with/without resumes)   │
+   │    • Resume Metadata                                          │
+   │  - Supabase Storage                                           │
+   │    • Master Resume Files                                      │
+   │  - Authentication                                             │
+   │    • Email/Password + Google OAuth                            │
    └───────────────────────────────────────────────────────────────┘
 
 Key Features:
@@ -214,12 +240,15 @@ Key Features:
 - **Context-aware**: Checks for required data before routing
 - **Resume tailoring**: AI analyzes job requirements and reorders content
 - **Authenticity**: Never fabricates experience, only reorders and emphasizes
-- Communication via localStorage (shared state)
+- **Communication via Supabase**: Shared state with Row Level Security
+- **Protected routes**: Middleware enforces authentication
 ```
 
 ### Data Flow
 
-1. **Job Discovery** → Jobs discovered and displayed temporarily in chat
-2. **Explicit Save** → User selects which jobs to save to localStorage
-3. **Job Matching** → Agent reads saved jobs, analyzes fit, returns scores
-4. **Persistence** → Updated jobs with scores saved to localStorage
+1. **Authentication** → User signs in (email/password or Google OAuth)
+2. **Job Discovery** → Jobs discovered and displayed temporarily in chat
+3. **Explicit Save** → User selects which jobs to save to Supabase database
+4. **Job Matching** → Agent fetches saved jobs from database, analyzes fit, returns scores
+5. **Persistence** → Updated jobs with scores saved to Supabase database
+6. **Resume Generation** → Tailored resumes saved to job records in database

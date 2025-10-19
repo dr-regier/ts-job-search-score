@@ -27,9 +27,9 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
 - **AI SDK 5** with OpenAI GPT-5 integration
 - **MCP (Model Context Protocol)** with Firecrawl for web scraping
 - **Adzuna API** for job board searches
+- **Supabase** for authentication, PostgreSQL database, and file storage
 - **shadcn/ui** components (New York style, neutral base color)
 - **Tailwind CSS v4** for styling
-- **localStorage** for data persistence (no database)
 
 ### Key Directories
 
@@ -53,10 +53,13 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
     - `components/agent/tools/` - Custom AI SDK tools
 - `lib/` - Core utilities and integrations
   - `lib/mcp/` - MCP client implementation for Firecrawl
-  - `lib/storage/` - localStorage utilities with SSR-safe operations
-    - `profile.ts` - User profile CRUD operations
-    - `jobs.ts` - Job management including `saveJobResume()` for persisting tailored resumes
-    - `resumes.ts` - Resume library management with automatic section parsing
+  - `lib/supabase/` - Supabase client and database queries
+    - `client.ts` - Browser Supabase client
+    - `server.ts` - Server Supabase client (SSR-safe)
+    - `queries/profile.ts` - Profile database operations
+    - `queries/jobs.ts` - Jobs database operations with `saveJobResume()`
+    - `queries/resumes.ts` - Resume database + Supabase Storage operations
+  - `lib/storage/` - Legacy localStorage utilities (deprecated, use Supabase)
   - `lib/context/` - React Context providers for global state management
   - `lib/utils.ts` - Utility functions including `cn()` for className merging
 - `types/` - TypeScript type definitions
@@ -344,6 +347,7 @@ Display tool execution states using AI Elements:
   - Wraps entire app in `app/layout.tsx` for persistence across navigation
   - Hosts both `useChat` hooks at context level (prevents state loss on navigation)
   - Manages savedJobs, userProfile, activeAgent state
+  - Fetches data from Supabase API instead of localStorage
   - Provides `clearChat()` method to reset conversation while preserving data
 - **Frontend**: `ChatAssistant` component (`components/chat/chat-assistant.tsx`) with dual-agent support
   - Simplified to 446 lines by consuming state from ChatContext
@@ -354,12 +358,13 @@ Display tool execution states using AI Elements:
   - Checks for saved jobs and profile before routing to Matching Agent
 - **API Routes**:
   - `/api/chat` - Job Discovery Agent
-  - `/api/match` - Job Matching Agent (receives jobs and profile in body)
+  - `/api/match` - Job Matching Agent (fetches jobs and profile from Supabase)
+  - `/api/resume` - Resume Generator Agent (tailors resumes for jobs)
 - **Message Merging**: `React.useMemo` combines messages from both agents chronologically
 - **Message Format**: Messages have `parts` array with typed parts (text, tool, etc.), NOT simple `content` field
 - **Sending Messages**: MUST use `sendMessage({ text: "message" })` format - string format does NOT work
 - **Streaming**: Official `useChat` hook handles streaming automatically for both agents
-- **State Management**: localStorage integration for jobs and profile, auto-refresh after agent actions
+- **State Management**: Supabase integration via API routes, auto-refresh after agent actions
 - **Chat Persistence**: Chat history persists across page navigation (in-memory via ChatContext)
 - **Clear Chat Feature**: AlertDialog confirms clearing history while preserving jobs and profile
 - **Error Handling**: Graceful fallbacks for API failures via `status` monitoring
@@ -494,15 +499,26 @@ Display tool execution states using AI Elements:
   - SSR-safe storage operations
 
 #### **Home Page / Chat Interface** (`/`)
-- **Header component** with navigation between Chat, Jobs, Resumes, and Profile
+- **Header component** with navigation and authentication
+  - Links: Chat, Jobs, Resumes, Profile
+  - **AuthButton** component - Sign in/out with user email display
+  - Active page highlighting
+  - Navigation icons: Home (Chat), Briefcase (Jobs), FileText (Resumes), User (Profile)
 - **Clear Chat button** with confirmation dialog (AlertDialog)
   - RotateCcw icon, outline variant
   - Positioned at top of chat interface below header
   - Confirms before clearing to prevent accidental data loss
   - Preserves saved jobs and profile data
   - Resets both agent conversations and message tracking
-- Active page highlighting
-- Navigation icons: Home (Chat), Briefcase (Jobs), FileText (Resumes), User (Profile)
+- **Protected Route**: Requires authentication via middleware
+  - Unauthenticated users redirected to `/login`
+
+#### **Login Page** (`/login`)
+- **Supabase Auth UI** for email/password authentication
+- **Google OAuth** integration (optional)
+- Clean, centered design with branding
+- Redirects to home page after successful sign-in
+- Public route (accessible without authentication)
 
 ### Adding Components
 
@@ -513,22 +529,30 @@ Display tool execution states using AI Elements:
 
 Create `.env.local` with:
 
-```
+```bash
+# AI APIs
 OPENAI_API_KEY=your_openai_api_key_here
 FIRECRAWL_API_KEY=your_firecrawl_api_key_here
 ADZUNA_APP_ID=your_adzuna_app_id_here
 ADZUNA_API_KEY=your_adzuna_api_key_here
+
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://<your-project>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 ```
 
 **Required APIs:**
-- **OpenAI API** - GPT-5 for agent reasoning and responses
-- **Firecrawl API** - Web scraping for company career pages
-- **Adzuna API** - Job board search across multiple sources
+- **OpenAI API** - GPT-5 for agent reasoning and responses ([Get API Key](https://platform.openai.com/api-keys))
+- **Firecrawl API** - Web scraping for company career pages ([Get API Key](https://firecrawl.dev))
+- **Adzuna API** - Job board search across multiple sources ([Get API Key](https://developer.adzuna.com))
+- **Supabase** - Authentication, PostgreSQL database, and file storage ([Create Project](https://supabase.com))
 
-**Optional (for RAG features if implemented):**
-- `VECTORIZE_ACCESS_TOKEN` - Vectorize for document retrieval
-- `VECTORIZE_ORG_ID` - Your Vectorize organization ID
-- `VECTORIZE_PIPELINE_ID` - Your Vectorize pipeline ID
+**Supabase Setup:**
+See `SUPABASE_MIGRATION.md` for detailed setup instructions including:
+- Database schema creation
+- Storage bucket configuration
+- Row Level Security policies
+- Google OAuth setup (optional)
 
 ## Critical Rules for useChat Implementation
 

@@ -25,7 +25,8 @@ export async function POST(request: Request) {
     }
 
     // Parse request body
-    const profile: UserProfile = await request.json();
+    const body = await request.json();
+    const profile: UserProfile = body.profile || body;
 
     // Save profile to database
     const success = await saveProfile(supabase, user.id, profile);
