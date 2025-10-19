@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { HeroSection } from "@/components/jobs/HeroSection";
-import { ActionCards } from "@/components/jobs/ActionCards";
 import { DashboardMetrics } from "@/components/jobs/DashboardMetrics";
 import { JobTable } from "@/components/jobs/JobTable";
 import { GenerateResumeDialog } from "@/components/jobs/GenerateResumeDialog";
@@ -159,9 +158,6 @@ export default function JobsPage() {
           {/* Hero Section */}
           <HeroSection />
 
-          {/* Action Cards */}
-          <ActionCards onScoreJobsClick={handleOpenScoreDialog} />
-
           {/* Dashboard Metrics */}
           <DashboardMetrics jobs={jobs} />
 
@@ -174,6 +170,7 @@ export default function JobsPage() {
               onJobRemove={handleJobRemove}
               onGenerateResume={handleGenerateResume}
               onViewResume={handleViewResume}
+              onScoreJobsClick={handleOpenScoreDialog}
             />
           </div>
         </div>

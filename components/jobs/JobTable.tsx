@@ -31,9 +31,10 @@ interface JobTableProps {
   onJobRemove: (jobId: string) => void;
   onGenerateResume?: (job: Job) => void;
   onViewResume?: (job: Job) => void;
+  onScoreJobsClick?: () => void;
 }
 
-export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume, onViewResume }: JobTableProps) {
+export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume, onViewResume, onScoreJobsClick }: JobTableProps) {
   const [filterPriority, setFilterPriority] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("score-desc");
@@ -206,6 +207,21 @@ export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume, 
               </SelectContent>
             </Select>
           </div>
+
+          {onScoreJobsClick && (
+            <div className="flex-1 min-w-[200px]">
+              <label className="text-sm font-medium text-gray-700 mb-2 block">
+                Actions
+              </label>
+              <Button
+                onClick={onScoreJobsClick}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              >
+                <Briefcase className="w-4 h-4 mr-2" />
+                Score Jobs
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
