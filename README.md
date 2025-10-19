@@ -13,9 +13,9 @@ An intelligent job search and matching system powered by multi-agent AI architec
   - **Seamless Coordination** - Multiple agents work in same conversation with merged message streams
   - **Chat Persistence** - Conversation history persists across page navigation (in-memory via React Context)
   - **Clear Chat** - Reset conversation with confirmation dialog while preserving saved jobs and profile
-- **Multi-Source Job Search** - Combines Firecrawl web scraping with Adzuna API for comprehensive coverage
+- **Multi-Source Job Search** - Combines Firecrawl web scraping with Adzuna API for comprehensive coverage (gracefully handles Firecrawl failures)
 - **Intelligent Job Scoring** - Weighted scoring system (0-100) with detailed reasoning and gap analysis
-- **AI-Powered Resume Tailoring** - Generate customized resumes for specific jobs using GPT-5
+- **AI-Powered Resume Tailoring** - Generate customized resumes for specific jobs using GPT-5 with optimized completion tracking
 - **Natural Language Commands** - Find, save, and score jobs through conversation
 - **AI Elements Components** - Rich UI components for tool calls, reasoning, and structured outputs
 
@@ -26,12 +26,13 @@ An intelligent job search and matching system powered by multi-agent AI architec
   - Real-time validation and visual feedback
   - Loads and pre-populates existing profile data
 - **Jobs Dashboard** (`/jobs`) - Premium dashboard for job tracking and management:
-  - Real-time metrics (total jobs, priority counts, average score, last updated)
+  - **Overview section** displayed at top with real-time metrics (total jobs, priority counts, average score, last updated)
+  - **Salary column** in jobs table - displays salary information or "Not specified"
   - Advanced filtering (by priority and status)
   - Multiple sorting options (score, date, company)
+  - **Score Jobs button** integrated into filters area for quick access
   - Status tracking per job (Saved → Applied → Interviewing → Offer/Rejected)
   - **Expandable rows** - Click any job to view detailed score breakdown, reasoning, and gaps
-  - **Batch scoring** - Select multiple jobs to score at once via checkbox selection
   - **View Resume** button (📄) - Appears when tailored resume exists, opens saved resume
   - **Generate Resume** button (✨) - Create tailored resumes for specific jobs
   - **Resume persistence** - Generated resumes automatically saved to jobs
@@ -166,16 +167,16 @@ From the Jobs Dashboard (`/jobs`):
 
 ### 7. Manage Your Applications
 Navigate to the Jobs Dashboard (`/jobs`):
-- View all saved jobs with scores and priorities
+- **Overview metrics** displayed at top: total jobs, priority counts, average score, last updated
+- View all saved jobs with scores, priorities, and **salary information**
 - **Click any job row to expand** and view detailed score breakdown, reasoning, and gaps
 - Filter by priority (High/Medium/Low) or status
 - Sort by score, date, or company
-- **Batch score jobs** - Click "Score Jobs" button to select multiple jobs and score them at once
+- **Batch score jobs** - Click "Score Jobs" button in filters area to select multiple jobs and score them at once
 - Update job status as you progress (Saved → Applied → Interviewing → Offer/Rejected)
 - **View tailored resumes** - Click 📄 icon to see saved resume (appears after generation)
 - **Remove unwanted jobs** - Click the trash icon to permanently delete a job (with confirmation)
 - Click "Apply" to visit job posting directly
-- Track metrics: total jobs, priority counts, average score
 
 ## Resources
 
@@ -195,7 +196,7 @@ Navigate to the Jobs Dashboard (`/jobs`):
 │                        Browser UI (Chat + Pages)                         │
 │  - AI Elements components (Conversation, Message, Tool, Reasoning)       │
 │  - useChat hook for streaming                                            │
-│  - localStorage for persistence                                          │
+│  - Supabase for persistence with Row Level Security                     │
 └───┬────────────────────────────┬─────────────────────────┬───────────────┘
     │                            │                         │
     │ 1) "Find jobs"             │ 3) "Score jobs"         │ 5) ✨ Generate Resume
@@ -238,9 +239,10 @@ Key Features:
 - **Intelligent routing**: Keywords trigger appropriate agent
 - **Message merging**: Chronologically combined streams
 - **Context-aware**: Checks for required data before routing
-- **Resume tailoring**: AI analyzes job requirements and reorders content
+- **Resume tailoring**: AI analyzes job requirements and reorders content (with optimized completion tracking)
 - **Authenticity**: Never fabricates experience, only reorders and emphasizes
 - **Communication via Supabase**: Shared state with Row Level Security
+- **Graceful degradation**: Agents continue without MCP tools if Firecrawl fails
 - **Protected routes**: Middleware enforces authentication
 ```
 

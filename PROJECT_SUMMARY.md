@@ -74,17 +74,19 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 
 **Agent Coordination**
 - Agents do NOT directly call each other
-- Communication via localStorage (shared state pattern)
+- Communication via Supabase database (shared state with Row Level Security)
 - User controls workflow with explicit commands
 - Each agent demonstrates autonomy within its domain
+- **Graceful degradation**: Firecrawl MCP failures are caught gracefully - agents continue without MCP tools if unavailable
 
 ## Key Features
 
 ### 1. Multi-Source Job Discovery
-- **Firecrawl MCP**: Scrapes company career pages in real-time
+- **Firecrawl MCP**: Scrapes company career pages in real-time (with graceful fallback if unavailable)
 - **Adzuna API**: Searches job boards with 50+ sources
 - **Autonomous decisions**: Agent chooses tools and search strategy
 - **Result refinement**: Automatically adjusts if initial results are poor
+- **Error resilience**: Continues operation even if Firecrawl connection fails
 
 ### 2. Intelligent Job Scoring
 - **Weighted scoring**: 5 configurable factors (salary, location, company, role, requirements)
@@ -97,7 +99,7 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - Jobs discovered are **temporary** (displayed in chat)
 - User must **explicitly save** jobs to profile
 - Natural language save commands: "save top 5", "save all remote", "save jobs 2, 5, 12"
-- Saved jobs persist in localStorage with status tracking
+- Saved jobs persist in Supabase database with status tracking and Row Level Security
 
 ### 4. Unified Multi-Agent Chat Interface
 - **React Context state management** (`lib/context/ChatContext.tsx`):
@@ -135,24 +137,26 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
   - Real-time validation (must sum to 100%)
   - Visual indicator: green when valid, red when invalid
   - Range: 0-100, step: 5
-- **Loads existing profile** from localStorage with pre-population
+- **Loads existing profile** from Supabase with pre-population
 - **Success messages** and indicators if profile was created via chat
 - **createdVia** field tracks profile origin ("chat" | "form")
 
 ### 6. Jobs Dashboard
 - **Premium dashboard UI** (`/jobs`) with professional design quality:
   - **HeroSection**: Animated gradient banner (blue → purple → blue)
-  - **ActionCards**: 4 quick-action cards with hover effects and navigation
-  - **DashboardMetrics**: 5 metric cards with real-time calculations
+  - **DashboardMetrics**: 5 metric cards with real-time calculations (displayed at top)
     - Total Jobs, High Priority, Medium Priority, Average Score, Last Updated
     - Color-coded numbers with icons
     - Staggered fade-in animations
-  - **JobTable**: Advanced table with filtering and sorting
+  - **JobTable**: Advanced table with filtering, sorting, and salary display
+    - **Columns**: Job Title, Company, Location, Salary, Score, Priority, Status, Actions
+    - **Salary column**: Displays salary info or "Not specified"
     - Filters: Priority (All/High/Medium/Low), Status (All/Saved/Applied/Interviewing/Offer/Rejected)
     - Sorting: Score (High/Low), Date (Newest/Oldest), Company (A-Z)
+    - **Score Jobs button**: Integrated into filters area for batch scoring
     - Large color-coded score display per job
     - Priority badges (pill-shaped, color-coded)
-    - Status dropdown per row with localStorage sync
+    - Status dropdown per row with Supabase sync
     - Expandable rows: Click any row to view detailed score breakdown, reasoning, and gaps
     - Action buttons:
       - View Resume (📄 FileText icon) - appears when tailored resume exists, opens ViewResumeDialog
@@ -189,15 +193,17 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
   - Identifies remaining gaps with recommendations
   - Copy to clipboard and download as .md file
   - Uses GPT-5 with reasoning_effort: 'medium' for quality output
-  - **Automatically saves generated resume to job** in localStorage
+  - **Optimized completion**: Prevents excess API calls by tracking processed tool calls
+  - **Automatically saves generated resume to job** in Supabase
   - **Persistent resume viewing**: View saved resumes via FileText button in JobTable
 - **Resume persistence and viewing**:
-  - Generated resumes automatically saved to Job.tailoredResume field
+  - Generated resumes automatically saved to Job.tailoredResume field in database
   - ViewResumeDialog displays saved resumes with full analysis
   - Conditional button display: View Resume (if exists) or View Job (external link)
   - ScoreJobsDialog for batch scoring with checkbox selection
-- **Data Storage**: Uses localStorage via `lib/storage/resumes.ts`
+- **Data Storage**: Uses Supabase via `lib/supabase/queries/resumes.ts`
   - Resume interface: id, name, content, uploadedAt, format, sections
+  - Files stored in Supabase Storage bucket with Row Level Security
   - SSR-safe storage operations
   - Automatic section parsing for structured data
 

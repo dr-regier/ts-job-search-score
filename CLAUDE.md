@@ -118,9 +118,10 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
 
 **Agent Coordination**
 - Agents do NOT directly call each other
-- Communication via localStorage (shared state)
+- Communication via Supabase database (shared state with Row Level Security)
 - User controls workflow (explicit save/score requests)
 - Each agent demonstrates autonomy within its domain
+- **Graceful degradation**: Firecrawl MCP failures are caught and agents continue without MCP tools
 
 ### AI SDK Tools
 
@@ -178,6 +179,7 @@ This application uses MCP (Model Context Protocol) to integrate Firecrawl web sc
 - **Dynamic Loading**: Tools are loaded at runtime from the Firecrawl MCP server
 - **Current MCP Tools**: Firecrawl provides web scraping and content extraction capabilities
 - **Tool Wrapping**: Tools are wrapped with logging to monitor execution
+- **Error Handling**: Firecrawl connection failures are caught gracefully - agents continue without MCP tools if unavailable
 
 Example from `/app/api/agent-with-mcp-tools/route.ts`:
 
@@ -400,7 +402,7 @@ Display tool execution states using AI Elements:
   - Real-time validation (must sum to 100%)
   - Visual indicator (green when valid, red when invalid)
   - Range: 0-100, step: 5
-- Loads existing profile from localStorage
+- Loads existing profile from Supabase
 - Pre-populates form if profile exists
 - Success message display on save
 - Indicator if profile was created via chat
@@ -408,17 +410,19 @@ Display tool execution states using AI Elements:
 #### **Jobs Dashboard** (`/jobs`)
 - Premium dashboard with professional design (Stripe/Linear/Notion quality)
 - **HeroSection**: Animated gradient banner with rocket emoji
-- **ActionCards**: 4 quick-action cards (Profile Setup, Discover Jobs, Score Jobs, View Dashboard)
-- **DashboardMetrics**: 5 metric cards with real-time calculations
+- **DashboardMetrics**: 5 metric cards with real-time calculations (displayed at top after hero)
   - Total Jobs, High Priority, Medium Priority, Average Score, Last Updated
   - Color-coded numbers with icons
   - Staggered fade-in animations
-- **JobTable**: Advanced table with filtering and sorting
+- **JobTable**: Advanced table with filtering, sorting, and salary display
+  - **Columns**: Job Title, Company, Location, Salary, Score, Priority, Status, Actions
+  - **Salary column**: Displays salary info when available, "Not specified" otherwise
   - Filters: Priority (All/High/Medium/Low), Status (All/Saved/Applied/Interviewing/Offer/Rejected)
   - Sorting: Score (High/Low), Date (Newest/Oldest), Company (A-Z)
+  - **Score Jobs button**: Integrated into filters area for batch scoring
   - Large color-coded score display
   - Priority badges (pill-shaped with proper colors)
-  - Status dropdown per row with localStorage sync
+  - Status dropdown per row with Supabase sync
   - Expandable rows: Click any row to view detailed score breakdown, reasoning, and gaps
   - Action buttons:
     - View Resume (📄 FileText icon) - appears when tailored resume exists, opens ViewResumeDialog
@@ -445,7 +449,8 @@ Display tool execution states using AI Elements:
   - Uses useChat with custom transport to inject job and resume objects
   - Uses refs to avoid React closure issues with stale state
   - Watches for tool results with action: "generated"
-  - Automatically saves generated resume to job in localStorage
+  - **Optimized completion**: Prevents excess API calls by tracking processed tool calls
+  - Automatically saves generated resume to job in Supabase
   - Copy to clipboard functionality with success indicator
   - Download as .md file with sanitized filename
 - **ViewResumeDialog**: Display saved tailored resumes
@@ -493,10 +498,11 @@ Display tool execution states using AI Elements:
 - **Tip Section**: Contextual help (shown when resumes exist)
   - Gray background with Lightbulb icon
   - Links to resume generation feature from Jobs dashboard
-- **Data Storage**: Uses localStorage via `lib/storage/resumes.ts`
+- **Data Storage**: Uses Supabase via `lib/supabase/queries/resumes.ts`
   - Resume interface: id, name, content, uploadedAt, format, sections
   - Automatic section parsing (summary, experience, skills, education)
-  - SSR-safe storage operations
+  - Files stored in Supabase Storage bucket
+  - SSR-safe storage operations with Row Level Security
 
 #### **Home Page / Chat Interface** (`/`)
 - **Header component** with navigation and authentication
