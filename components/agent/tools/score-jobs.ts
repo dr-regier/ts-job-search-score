@@ -92,13 +92,36 @@ export const scoreJobsTool = {
       `   Priority breakdown: ${priorityCounts.high} high, ${priorityCounts.medium} medium, ${priorityCounts.low} low`
     );
 
-    return {
-      action: "scored",
-      scoredJobs,
-      count: scoredJobs.length,
-      averageScore: Math.round(avgScore),
-      priorityCounts,
-      message: `Scored ${scoredJobs.length} job${scoredJobs.length === 1 ? "" : "s"}. Average score: ${Math.round(avgScore)}/100`,
-    };
+    try {
+      // Save scores to Supabase via API route
+      const response = await fetch('/api/jobs/score', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ scoredJobs }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('❌ Failed to save scores:', error);
+        throw new Error(error.error || 'Failed to save scores');
+      }
+
+      const result = await response.json();
+      console.log(`✅ Successfully saved scores for ${result.count} jobs to database`);
+
+      return {
+        action: "scored",
+        scoredJobs,
+        count: scoredJobs.length,
+        averageScore: Math.round(avgScore),
+        priorityCounts,
+        message: `Scored ${scoredJobs.length} job${scoredJobs.length === 1 ? "" : "s"}. Average score: ${Math.round(avgScore)}/100`,
+      };
+    } catch (error) {
+      console.error('💥 Score Jobs Tool error:', error);
+      throw error;
+    }
   },
 };

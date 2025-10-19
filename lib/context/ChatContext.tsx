@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
-import { getJobs, getProfile, addJobs, updateJobsWithScores } from "@/lib/storage";
+import { createClient } from "@/lib/supabase/client";
 import type { Job } from "@/types/job";
 import type { UserProfile } from "@/types/profile";
 
@@ -45,32 +45,65 @@ export function ChatProvider({
   children: React.ReactNode;
   api?: string;
 }) {
-  // State for saved jobs and user profile (from localStorage)
+  // State for saved jobs and user profile (from Supabase)
   const [savedJobs, setSavedJobs] = useState<Job[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [activeAgent, setActiveAgent] = useState<'discovery' | 'matching'>('discovery');
+  const [userId, setUserId] = useState<string | null>(null);
 
   // Refs for tracking message order and processed tool calls
   const messageOrderRef = useRef<Map<string, number>>(new Map());
   const nextOrderRef = useRef(0);
   const processedToolCallsRef = useRef<Set<string>>(new Set());
 
-  // Load saved jobs and profile from localStorage on mount
-  useEffect(() => {
-    const jobs = getJobs();
-    const profile = getProfile();
-    setSavedJobs(jobs);
-    setUserProfile(profile);
-  }, []);
+  const supabase = createClient();
 
-  // Helper to refresh jobs from localStorage
-  const refreshSavedJobs = () => {
-    setSavedJobs(getJobs());
+  // Load user session and data from Supabase on mount
+  useEffect(() => {
+    const loadUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        setUserId(user.id);
+
+        // Load jobs and profile from Supabase via API
+        const jobsResponse = await fetch('/api/jobs');
+        if (jobsResponse.ok) {
+          const jobsData = await jobsResponse.json();
+          setSavedJobs(jobsData.jobs || []);
+        }
+
+        const profileResponse = await fetch('/api/profile');
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          setUserProfile(profileData.profile);
+        }
+      }
+    };
+
+    loadUserData();
+  }, [supabase.auth]);
+
+  // Helper to refresh jobs from Supabase
+  const refreshSavedJobs = async () => {
+    if (!userId) return;
+
+    const response = await fetch('/api/jobs');
+    if (response.ok) {
+      const data = await response.json();
+      setSavedJobs(data.jobs || []);
+    }
   };
 
-  // Helper to refresh profile from localStorage
-  const refreshUserProfile = () => {
-    setUserProfile(getProfile());
+  // Helper to refresh profile from Supabase
+  const refreshUserProfile = async () => {
+    if (!userId) return;
+
+    const response = await fetch('/api/profile');
+    if (response.ok) {
+      const data = await response.json();
+      setUserProfile(data.profile);
+    }
   };
 
   // Discovery Agent (Job Discovery) - default chat
@@ -83,24 +116,10 @@ export function ChatProvider({
   });
 
   // Matching Agent (Job Matching/Scoring)
-  // Use a custom fetch to inject current savedJobs and userProfile
+  // Matching agent fetches jobs and profile from Supabase server-side
   const matchingChat = useChat({
     transport: new DefaultChatTransport({
       api: '/api/match',
-      fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
-        // Inject current savedJobs and userProfile into request body
-        const body = JSON.parse(init?.body as string || '{}');
-        const enhancedBody = {
-          ...body,
-          jobs: getJobs(),        // Get fresh jobs from localStorage
-          profile: getProfile(),  // Get fresh profile from localStorage
-        };
-
-        return fetch(input, {
-          ...init,
-          body: JSON.stringify(enhancedBody),
-        });
-      },
     }),
     onFinish: () => {
       // Reload saved jobs after matching agent finishes (scores may have been added)
@@ -138,33 +157,17 @@ export function ChatProvider({
           // Handle saveJobsToProfile tool result
           if (toolOutput.action === 'saved' && toolOutput.savedJobs) {
             console.log('💾 Processing save tool result:', toolOutput.count, 'jobs');
-
-            // Add jobs to localStorage
-            const success = addJobs(toolOutput.savedJobs);
-
-            if (success) {
-              console.log('✅ Successfully saved', toolOutput.count, 'jobs to localStorage');
-              // Reload saved jobs state
-              refreshSavedJobs();
-            } else {
-              console.error('❌ Failed to save jobs to localStorage');
-            }
+            console.log('✅ Jobs saved to Supabase via agent tool');
+            // Reload saved jobs state from Supabase
+            refreshSavedJobs();
           }
 
           // Handle scoreJobsTool result
           if (toolOutput.action === 'scored' && toolOutput.scoredJobs) {
             console.log('📊 Processing score tool result:', toolOutput.scoredJobs.length, 'jobs');
-
-            // Update jobs with scores in localStorage
-            const success = updateJobsWithScores(toolOutput.scoredJobs);
-
-            if (success) {
-              console.log('✅ Successfully updated', toolOutput.scoredJobs.length, 'jobs with scores');
-              // Reload saved jobs state
-              refreshSavedJobs();
-            } else {
-              console.error('❌ Failed to update jobs with scores');
-            }
+            console.log('✅ Scores saved to Supabase via agent tool');
+            // Reload saved jobs state from Supabase
+            refreshSavedJobs();
           }
         }
       });

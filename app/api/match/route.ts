@@ -9,15 +9,31 @@
 import { JOB_MATCHING_SYSTEM_PROMPT } from "@/components/agent/prompts";
 import { scoreJobsTool } from "@/components/agent/tools";
 import { getFirecrawlMCPClient } from "@/lib/mcp";
+import { createClient } from "@/lib/supabase/server";
+import { getJobs, getProfile } from "@/lib/supabase/queries";
 import { openai } from "@ai-sdk/openai";
 import { streamText, convertToModelMessages, stepCountIs } from "ai";
 import { NextRequest } from "next/server";
-import type { Job } from "@/types/job";
-import type { UserProfile } from "@/types/profile";
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, jobs, profile } = await request.json();
+    // Get user from Supabase auth
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      console.log('❌ Authentication failed');
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    const { messages } = await request.json();
+
+    // Fetch jobs and profile from Supabase
+    const jobs = await getJobs(supabase, user.id);
+    const profile = await getProfile(supabase, user.id);
 
     console.log('\n' + '═'.repeat(60));
     console.log('📊 JOB MATCHING AGENT ACTIVATED');

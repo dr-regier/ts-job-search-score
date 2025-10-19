@@ -2,7 +2,7 @@
  * Save Jobs Tool
  *
  * Allows the agent to save selected jobs to user's profile.
- * Returns data for client-side handler to write to localStorage.
+ * Saves directly to Supabase database via API route.
  */
 
 import { z } from "zod";
@@ -11,13 +11,12 @@ import type { Job } from "@/types/job";
 /**
  * Save Jobs to Profile Tool
  *
- * Saves selected jobs to the user's profile (localStorage).
- * The agent returns saved job data, and the client-side handler
- * actually performs the localStorage write operation.
+ * Saves selected jobs to the user's profile in Supabase database.
+ * Makes API call to /api/jobs/save endpoint.
  */
 export const saveJobsToProfile = {
   description:
-    "Save selected jobs to the user's profile. Use this ONLY when the user explicitly requests to save jobs (e.g., 'save the top 5', 'save jobs 2, 5, and 12', 'save all remote ones'). NEVER auto-save jobs without user request. Jobs must be marked with applicationStatus: 'saved' and will persist in localStorage.",
+    "Save selected jobs to the user's profile in the database. Use this ONLY when the user explicitly requests to save jobs (e.g., 'save the top 5', 'save jobs 2, 5, and 12', 'save all remote ones'). NEVER auto-save jobs without user request. Jobs must be marked with applicationStatus: 'saved'.",
 
   inputSchema: z.object({
     jobs: z
@@ -60,19 +59,36 @@ export const saveJobsToProfile = {
       statusUpdatedAt: new Date().toISOString(),
     }));
 
-    // Extract IDs for easy reference
-    const savedIds = savedJobs.map((job) => job.id);
+    try {
+      // Save jobs to Supabase via API route
+      const response = await fetch('/api/jobs/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ jobs: savedJobs }),
+      });
 
-    console.log(`✅ Prepared ${savedJobs.length} jobs for saving`);
-    console.log(`   Job IDs: ${savedIds.join(", ")}`);
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('❌ Failed to save jobs:', error);
+        throw new Error(error.error || 'Failed to save jobs');
+      }
 
-    return {
-      action: "saved",
-      savedJobs,
-      savedIds,
-      count: savedJobs.length,
-      criteria: criteria || "selected jobs",
-      message: `Saved ${savedJobs.length} job${savedJobs.length === 1 ? "" : "s"}${criteria ? ` (${criteria})` : ""} to your profile`,
-    };
+      const result = await response.json();
+      console.log(`✅ Successfully saved ${result.count} jobs to database`);
+
+      return {
+        action: "saved",
+        savedJobs,
+        savedIds: savedJobs.map((job) => job.id),
+        count: savedJobs.length,
+        criteria: criteria || "selected jobs",
+        message: `Saved ${savedJobs.length} job${savedJobs.length === 1 ? "" : "s"}${criteria ? ` (${criteria})` : ""} to your profile`,
+      };
+    } catch (error) {
+      console.error('💥 Save Jobs Tool error:', error);
+      throw error;
+    }
   },
 };
