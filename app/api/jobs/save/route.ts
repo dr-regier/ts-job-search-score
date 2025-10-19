@@ -33,16 +33,13 @@ export async function POST(request: Request) {
     }
 
     // Save jobs to database
-    const success = await saveJobs(supabase, user.id, jobs);
+    const savedJobs = await saveJobs(supabase, user.id, jobs);
 
-    if (!success) {
-      return NextResponse.json(
-        { error: "Failed to save jobs" },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ success: true, count: jobs.length });
+    return NextResponse.json({
+      success: true,
+      count: savedJobs.length,
+      jobs: savedJobs,
+    });
   } catch (error) {
     console.error("Jobs save API error:", error);
     return NextResponse.json(

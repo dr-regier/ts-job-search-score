@@ -56,7 +56,7 @@ export const saveJobsToProfile = {
     }
 
     // Mark all jobs as saved
-    const savedJobs: Job[] = jobs.map((job: any) => ({
+    const jobsToSave: Job[] = jobs.map((job: any) => ({
       ...job,
       applicationStatus: "saved" as const,
       statusUpdatedAt: new Date().toISOString(),
@@ -80,7 +80,7 @@ export const saveJobsToProfile = {
         method: "POST",
         headers,
         credentials: "include",
-        body: JSON.stringify({ jobs: savedJobs }),
+        body: JSON.stringify({ jobs: jobsToSave }),
       });
 
       if (!response.ok) {
@@ -90,15 +90,16 @@ export const saveJobsToProfile = {
       }
 
       const result = await response.json();
-      console.log(`✅ Successfully saved ${result.count} jobs to database`);
+      const persistedJobs: Job[] = result.jobs || jobsToSave;
+      console.log(`✅ Successfully saved ${persistedJobs.length} jobs to database`);
 
       return {
         action: "saved",
-        savedJobs,
-        savedIds: savedJobs.map((job) => job.id),
-        count: savedJobs.length,
+        savedJobs: persistedJobs,
+        savedIds: persistedJobs.map((job) => job.id),
+        count: persistedJobs.length,
         criteria: criteria || "selected jobs",
-        message: `Saved ${savedJobs.length} job${savedJobs.length === 1 ? "" : "s"}${criteria ? ` (${criteria})` : ""} to your profile`,
+        message: `Saved ${persistedJobs.length} job${persistedJobs.length === 1 ? "" : "s"}${criteria ? ` (${criteria})` : ""} to your profile`,
       };
     } catch (error) {
       console.error('💥 Save Jobs Tool error:', error);

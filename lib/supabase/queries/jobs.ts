@@ -54,22 +54,25 @@ export async function saveJobs(
   supabase: SupabaseClient,
   userId: string,
   jobs: Job[]
-): Promise<boolean> {
+): Promise<Job[]> {
   try {
     // Map Job interface to database columns
     const jobRecords = jobs.map((job) => mapJobToDatabase(job, userId));
 
-    const { error } = await supabase.from("jobs").insert(jobRecords);
+    const { data, error } = await supabase
+      .from("jobs")
+      .insert(jobRecords)
+      .select("*");
 
     if (error) {
       console.error("Error saving jobs to Supabase:", error);
-      return false;
+      throw error;
     }
 
-    return true;
+    return (data || []).map(mapDatabaseToJob);
   } catch (error) {
     console.error("Error saving jobs to Supabase:", error);
-    return false;
+    throw error;
   }
 }
 
@@ -448,15 +451,14 @@ function mapDatabaseToJob(data: any): Job {
  * Maps Job interface to database columns
  */
 function mapJobToDatabase(job: Job, userId: string): any {
-  return {
-    id: job.id,
+  const record: Record<string, any> = {
     user_id: userId,
     title: job.title,
     company: job.company,
     location: job.location,
     salary: job.salary,
     description: job.description,
-    requirements: job.requirements,
+    requirements: job.requirements || [],
     url: job.url,
     source: job.source,
     discovered_at: job.discoveredAt,
@@ -470,4 +472,21 @@ function mapJobToDatabase(job: Job, userId: string): any {
     notes: job.notes,
     tailored_resume: job.tailoredResume,
   };
+
+  if (isValidUuid(job.id)) {
+    record.id = job.id;
+  } else if (job.id) {
+    console.warn(
+      `Invalid job id "${job.id}" detected when saving job "${job.title}". Supabase will generate a new UUID.`
+    );
+  }
+
+  return record;
+}
+
+function isValidUuid(value?: string | null): value is string {
+  if (!value) return false;
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(value);
 }

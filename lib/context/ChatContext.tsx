@@ -67,13 +67,17 @@ export function ChatProvider({
         setUserId(user.id);
 
         // Load jobs and profile from Supabase via API
-        const jobsResponse = await fetch('/api/jobs');
+        const jobsResponse = await fetch('/api/jobs', {
+          credentials: 'include',
+        });
         if (jobsResponse.ok) {
           const jobsData = await jobsResponse.json();
           setSavedJobs(jobsData.jobs || []);
         }
 
-        const profileResponse = await fetch('/api/profile');
+        const profileResponse = await fetch('/api/profile', {
+          credentials: 'include',
+        });
         if (profileResponse.ok) {
           const profileData = await profileResponse.json();
           setUserProfile(profileData.profile);
@@ -88,7 +92,9 @@ export function ChatProvider({
   const refreshSavedJobs = async () => {
     if (!userId) return;
 
-    const response = await fetch('/api/jobs');
+    const response = await fetch('/api/jobs', {
+      credentials: 'include',
+    });
     if (response.ok) {
       const data = await response.json();
       setSavedJobs(data.jobs || []);
@@ -99,7 +105,9 @@ export function ChatProvider({
   const refreshUserProfile = async () => {
     if (!userId) return;
 
-    const response = await fetch('/api/profile');
+    const response = await fetch('/api/profile', {
+      credentials: 'include',
+    });
     if (response.ok) {
       const data = await response.json();
       setUserProfile(data.profile);
