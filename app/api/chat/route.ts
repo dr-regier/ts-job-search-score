@@ -64,12 +64,16 @@ export async function POST(request: NextRequest) {
       },
     };
 
+    const cookieHeader = request.headers.get("cookie") ?? undefined;
+
     const wrappedSaveJobs = {
       ...saveJobsToProfile,
       execute: async (args: any) => {
         console.log(`\n🔧 Custom Tool called: saveJobsToProfile`);
         console.log(`   Input:`, JSON.stringify(args, null, 2));
-        const result = await saveJobsToProfile.execute(args);
+        const result = await saveJobsToProfile.execute(args, {
+          cookie: cookieHeader,
+        });
         console.log(`   Output:`, JSON.stringify(result, null, 2));
         return result;
       },

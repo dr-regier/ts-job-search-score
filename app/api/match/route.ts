@@ -82,6 +82,8 @@ export async function POST(request: NextRequest) {
       `🔧 Job Matching Agent has access to ${Object.keys(firecrawlTools).length} Firecrawl MCP tools`
     );
 
+    const cookieHeader = request.headers.get("cookie") ?? undefined;
+
     // Wrap Firecrawl tools to log when they are called
     const wrappedFirecrawlTools = Object.fromEntries(
       Object.entries(firecrawlTools).map(([toolName, toolDef]) => [
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
       execute: async (args: any) => {
         console.log(`\n🔧 Custom Tool called: scoreJobsTool`);
         console.log(`   Input:`, JSON.stringify(args, null, 2));
-        const result = await scoreJobsTool.execute(args);
+        const result = await scoreJobsTool.execute(args, { cookie: cookieHeader });
         console.log(`   Output:`, JSON.stringify(result, null, 2));
         return result;
       },

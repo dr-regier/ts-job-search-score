@@ -68,7 +68,10 @@ export const scoreJobsTool = {
       .describe("Array of scored jobs with analysis"),
   }),
 
-  execute: async ({ scoredJobs }: { scoredJobs: any[] }) => {
+  execute: async (
+    { scoredJobs }: { scoredJobs: any[] },
+    context?: { cookie?: string }
+  ) => {
     console.log(`🎯 Score Jobs Tool called for ${scoredJobs.length} job(s)`);
 
     // Log score summary
@@ -93,12 +96,23 @@ export const scoreJobsTool = {
     );
 
     try {
-      // Save scores to Supabase via API route
-      const response = await fetch('/api/jobs/score', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const baseUrl =
+        process.env.NEXT_PUBLIC_SITE_URL ??
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+      // Save scores to Supabase via API route (absolute URL required server-side)
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (context?.cookie) {
+        headers.Cookie = context.cookie;
+      }
+
+      const response = await fetch(new URL("/api/jobs/score", baseUrl), {
+        method: "POST",
+        headers,
+        credentials: "include",
         body: JSON.stringify({ scoredJobs }),
       });
 

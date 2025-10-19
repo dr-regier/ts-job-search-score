@@ -45,7 +45,10 @@ export const saveJobsToProfile = {
       ),
   }),
 
-  execute: async ({ jobs, criteria }: { jobs: any[]; criteria?: string }) => {
+  execute: async (
+    { jobs, criteria }: { jobs: any[]; criteria?: string },
+    context?: { cookie?: string }
+  ) => {
     console.log(`💾 Save Jobs Tool called for ${jobs.length} job(s)`);
 
     if (criteria) {
@@ -60,12 +63,23 @@ export const saveJobsToProfile = {
     }));
 
     try {
-      // Save jobs to Supabase via API route
-      const response = await fetch('/api/jobs/save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const baseUrl =
+        process.env.NEXT_PUBLIC_SITE_URL ??
+        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+
+      // Save jobs to Supabase via API route (needs absolute URL when running server-side)
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      if (context?.cookie) {
+        headers.Cookie = context.cookie;
+      }
+
+      const response = await fetch(new URL("/api/jobs/save", baseUrl), {
+        method: "POST",
+        headers,
+        credentials: "include",
         body: JSON.stringify({ jobs: savedJobs }),
       });
 
