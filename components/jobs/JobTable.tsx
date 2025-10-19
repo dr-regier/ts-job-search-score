@@ -224,6 +224,9 @@ export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume, 
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">
                   Location
                 </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                  Salary
+                </th>
                 <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wide">
                   Score
                 </th>
@@ -266,6 +269,9 @@ export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume, 
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-600">
                             {job.location}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600">
+                            {job.salary || "Not specified"}
                           </td>
                           <td className="px-6 py-4 text-center">
                             <div
@@ -392,7 +398,7 @@ export function JobTable({ jobs, onStatusUpdate, onJobRemove, onGenerateResume, 
                     </tr>
                     {isExpanded && (
                       <tr className="border-t border-gray-100 bg-gray-50">
-                          <td colSpan={7} className="px-6 py-6">
+                          <td colSpan={8} className="px-6 py-6">
                             {job.score !== undefined ? (
                               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 {/* Left column: Score Breakdown */}
