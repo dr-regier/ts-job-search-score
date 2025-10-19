@@ -15,6 +15,7 @@ import {
   PromptInputTextarea,
   PromptInputToolbar,
   PromptInputSubmit,
+  PromptInputButton,
 } from "@/components/ai-elements/prompt-input";
 import {
   Sources,
@@ -35,6 +36,7 @@ import {
   ReasoningContent,
 } from "@/components/ai-elements/reasoning";
 import { Response } from "@/components/ai-elements/response";
+import { SquareIcon } from "lucide-react";
 
 // RAG Tool types for proper TypeScript support
 type RAGToolInput = {
@@ -142,6 +144,7 @@ export default function ChatAssistant({}: ChatAssistantProps) {
     messageOrderRef,
     nextOrderRef,
     handleSendMessage,
+    stopCurrentRun,
   } = useChatContext();
 
   // Merge messages from both agents chronologically
@@ -246,6 +249,9 @@ export default function ChatAssistant({}: ChatAssistantProps) {
   };
 
   const isLoading = status === "streaming";
+  const handleStop = React.useCallback(() => {
+    stopCurrentRun();
+  }, [stopCurrentRun]);
 
   return (
     <div className="flex flex-col h-full max-h-full overflow-hidden">
@@ -435,7 +441,18 @@ export default function ChatAssistant({}: ChatAssistantProps) {
             <PromptInputTextarea placeholder="What would you like to know?" />
             <PromptInputToolbar>
               <div />
-              <PromptInputSubmit status={isLoading ? "submitted" : undefined} />
+              {isLoading ? (
+                <PromptInputButton
+                  variant="outline"
+                  className="text-red-600 border-red-200 hover:border-red-400 hover:text-red-700"
+                  onClick={handleStop}
+                >
+                  <SquareIcon className="size-4" />
+                  Stop
+                </PromptInputButton>
+              ) : (
+                <PromptInputSubmit />
+              )}
             </PromptInputToolbar>
           </PromptInputBody>
         </PromptInput>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, useRef } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { createClient } from "@/lib/supabase/client";
@@ -23,6 +23,7 @@ interface ChatContextType {
   userProfile: UserProfile | null;
   refreshSavedJobs: () => void;
   refreshUserProfile: () => void;
+  stopCurrentRun: () => void;
 
   // Refs for message ordering and tool processing
   messageOrderRef: React.MutableRefObject<Map<string, number>>;
@@ -203,11 +204,39 @@ export function ChatProvider({
     return scoringKeywords.some(keyword => lowerText.includes(keyword));
   };
 
+  const stopCurrentRun = useCallback(() => {
+    let stopped = false;
+
+    try {
+      if (discoveryChat.status === "streaming") {
+        discoveryChat.stop();
+        stopped = true;
+      }
+    } catch (error) {
+      console.error("Failed to stop discovery chat stream:", error);
+    }
+
+    try {
+      if (matchingChat.status === "streaming") {
+        matchingChat.stop();
+        stopped = true;
+      }
+    } catch (error) {
+      console.error("Failed to stop matching chat stream:", error);
+    }
+
+    if (stopped) {
+      console.log("⛔️ Stopped active agent response");
+    }
+  }, [discoveryChat, matchingChat]);
+
   /**
    * Clear all chat history and reset to fresh state
    * Preserves saved jobs and profile data
    */
   const clearChat = () => {
+    stopCurrentRun();
+
     // Clear both agent message histories
     discoveryChat.setMessages([]);
     matchingChat.setMessages([]);
@@ -281,6 +310,7 @@ export function ChatProvider({
     userProfile,
     refreshSavedJobs,
     refreshUserProfile,
+    stopCurrentRun,
     messageOrderRef,
     nextOrderRef,
     processedToolCallsRef,
