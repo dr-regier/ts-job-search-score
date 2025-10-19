@@ -50,6 +50,7 @@ export function GenerateResumeDialog({
   const jobIdRef = useRef<string | undefined>(undefined);
   const jobRef = useRef<Job | null>(null);
   const resumeCacheRef = useRef<Record<string, Resume>>({});
+  const processedToolCallsRef = useRef<Set<string>>(new Set());
 
   // Update refs when values change
   useEffect(() => {
@@ -163,6 +164,7 @@ export function GenerateResumeDialog({
       setCopySuccess(false);
       setResumeCache({});
       setResumeError(null);
+      processedToolCallsRef.current.clear();
     }
   }, [open, loadResumes]);
 
@@ -217,10 +219,20 @@ export function GenerateResumeDialog({
 
     const parts = (lastMessage as any).parts || [];
 
-    parts.forEach((part: any) => {
+    parts.forEach((part: any, partIndex: number) => {
       const toolOutput = part.result || part.output;
+      const toolCallId =
+        part?.toolCallId ||
+        part?.id ||
+        `${lastMessage.id ?? "message"}-${part.type ?? "tool"}-${partIndex}`;
+
+      if (processedToolCallsRef.current.has(toolCallId)) {
+        return;
+      }
 
       if (toolOutput?.action === "generated" && toolOutput.tailoredResume) {
+        processedToolCallsRef.current.add(toolCallId);
+
         setGeneratedResume(toolOutput);
         setIsGenerating(false);
 
