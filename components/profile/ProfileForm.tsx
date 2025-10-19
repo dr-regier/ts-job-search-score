@@ -61,7 +61,9 @@ export function ProfileForm() {
     async function loadProfile() {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/profile');
+        const response = await fetch('/api/profile', {
+          credentials: 'include',
+        });
 
         if (!response.ok) {
           if (response.status === 401) {
@@ -144,6 +146,7 @@ export function ProfileForm() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ profile }),
       });
 

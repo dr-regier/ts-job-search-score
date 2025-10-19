@@ -47,12 +47,16 @@ export function ScoreJobsDialog({
   const loadJobsAndProfile = async () => {
     try {
       // Fetch jobs from API
-      const jobsResponse = await fetch('/api/jobs');
+      const jobsResponse = await fetch('/api/jobs', {
+        credentials: 'include',
+      });
       const jobsData = await jobsResponse.json();
       const savedJobs = jobsData.jobs || [];
 
       // Fetch profile from API
-      const profileResponse = await fetch('/api/profile');
+      const profileResponse = await fetch('/api/profile', {
+        credentials: 'include',
+      });
       const profileData = await profileResponse.json();
       const userProfile = profileData.profile;
 
@@ -92,7 +96,9 @@ export function ScoreJobsDialog({
         const body = JSON.parse(init?.body as string || '{}');
 
         // Fetch jobs from API
-        const jobsResponse = await fetch('/api/jobs');
+        const jobsResponse = await fetch('/api/jobs', {
+          credentials: 'include',
+        });
         const jobsData = await jobsResponse.json();
         const allJobs = jobsData.jobs || [];
 
@@ -100,7 +106,9 @@ export function ScoreJobsDialog({
         const selectedJobs = allJobs.filter((job: Job) => selectedJobIdsRef.current.has(job.id));
 
         // Fetch profile from API
-        const profileResponse = await fetch('/api/profile');
+        const profileResponse = await fetch('/api/profile', {
+          credentials: 'include',
+        });
         const profileData = await profileResponse.json();
 
         const enhancedBody = {
@@ -111,6 +119,7 @@ export function ScoreJobsDialog({
 
         return fetch(input, {
           ...init,
+          credentials: 'include',
           body: JSON.stringify(enhancedBody),
         });
       },

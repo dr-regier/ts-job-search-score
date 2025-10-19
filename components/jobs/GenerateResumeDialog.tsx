@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { Button } from "@/components/ui/button";
@@ -24,8 +24,6 @@ import { Badge } from "@/components/ui/badge";
 import { Copy, Download, Sparkles, CheckCircle, AlertCircle } from "lucide-react";
 import type { Job } from "@/types/job";
 import type { Resume } from "@/types/resume";
-import { getResumes, getResumeById } from "@/lib/storage/resumes";
-import { getJobById, saveJobResume } from "@/lib/storage/jobs";
 
 interface GenerateResumeDialogProps {
   job: Job | null;
@@ -39,6 +37,9 @@ export function GenerateResumeDialog({
   onOpenChange,
 }: GenerateResumeDialogProps) {
   const [resumes, setResumes] = useState<Resume[]>([]);
+  const [resumeCache, setResumeCache] = useState<Record<string, Resume>>({});
+  const [isLoadingResumes, setIsLoadingResumes] = useState(false);
+  const [resumeError, setResumeError] = useState<string | null>(null);
   const [selectedResumeId, setSelectedResumeId] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedResume, setGeneratedResume] = useState<any>(null);
@@ -47,6 +48,8 @@ export function GenerateResumeDialog({
   // Use refs to store current values for the transport (avoid stale closure)
   const selectedResumeIdRef = useRef<string>("");
   const jobIdRef = useRef<string | undefined>(undefined);
+  const jobRef = useRef<Job | null>(null);
+  const resumeCacheRef = useRef<Record<string, Resume>>({});
 
   // Update refs when values change
   useEffect(() => {
@@ -55,36 +58,140 @@ export function GenerateResumeDialog({
 
   useEffect(() => {
     jobIdRef.current = job?.id;
-  }, [job?.id]);
+    jobRef.current = job || null;
+  }, [job?.id, job]);
+
+  useEffect(() => {
+    resumeCacheRef.current = resumeCache;
+  }, [resumeCache]);
+
+  const loadResumes = useCallback(async () => {
+    setIsLoadingResumes(true);
+    setResumeError(null);
+
+    try {
+      const response = await fetch("/api/resumes", {
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setResumes([]);
+          setResumeError("Please sign in to access your resumes.");
+          return;
+        }
+        throw new Error("Failed to load resumes");
+      }
+
+      const data = await response.json();
+      const resumeList = (data.resumes || []) as Resume[];
+      setResumes(resumeList);
+    } catch (error) {
+      console.error("Error loading resumes:", error);
+      setResumes([]);
+      setResumeError(
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred while loading resumes."
+      );
+    } finally {
+      setIsLoadingResumes(false);
+    }
+  }, []);
+
+  const loadResumeContent = useCallback(
+    async (resumeId: string): Promise<Resume | null> => {
+      if (resumeCacheRef.current[resumeId]?.content) {
+        return resumeCacheRef.current[resumeId];
+      }
+
+      const resumeMeta = resumes.find((resume) => resume.id === resumeId);
+
+      if (!resumeMeta) {
+        console.warn(`Resume metadata not found for id ${resumeId}`);
+        return null;
+      }
+
+      try {
+        const response = await fetch(`/api/resumes/${resumeId}`, {
+          credentials: "include",
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to load resume content");
+        }
+
+        const data = await response.json();
+        const resumeWithContent: Resume = {
+          ...resumeMeta,
+          content: data.content || "",
+        };
+
+        setResumeCache((prev) => ({
+          ...prev,
+          [resumeId]: resumeWithContent,
+        }));
+
+        setResumes((prev) =>
+          prev.map((resume) =>
+            resume.id === resumeId
+              ? { ...resume, content: resumeWithContent.content }
+              : resume
+          )
+        );
+
+        return resumeWithContent;
+      } catch (error) {
+        console.error("Error loading resume content:", error);
+        setResumeError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load resume content. Please try again."
+        );
+        return null;
+      }
+    },
+    [resumes]
+  );
 
   // Load resumes when dialog opens
   useEffect(() => {
     if (open) {
-      const userResumes = getResumes();
-      setResumes(userResumes);
-
-      // Reset state
+      loadResumes();
       setSelectedResumeId("");
       setGeneratedResume(null);
       setCopySuccess(false);
+      setResumeCache({});
+      setResumeError(null);
     }
-  }, [open]);
+  }, [open, loadResumes]);
+
+  const handleResumeSelect = (value: string) => {
+    setSelectedResumeId(value);
+    setResumeError(null);
+    void loadResumeContent(value);
+  };
 
   // Setup useChat for Resume Generator Agent with custom transport
   const { messages, sendMessage, setMessages } = useChat({
     transport: new DefaultChatTransport({
-      api: '/api/resume',
+      api: "/api/resume",
       fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
         // Get current values from refs (not closure)
         const currentJobId = jobIdRef.current;
         const currentResumeId = selectedResumeIdRef.current;
 
-        // Fetch job and resume objects from localStorage (client-side)
-        const jobObject = currentJobId ? getJobById(currentJobId) : null;
-        const resumeObject = currentResumeId ? getResumeById(currentResumeId) : null;
+        const jobObject = currentJobId ? jobRef.current : null;
+        const resumeObject = currentResumeId
+          ? resumeCacheRef.current[currentResumeId]
+          : null;
+
+        if (!resumeObject) {
+          throw new Error("Selected resume content is not available.");
+        }
 
         // Parse existing body and inject job data
-        const body = JSON.parse(init?.body as string || '{}');
+        const body = JSON.parse((init?.body as string) || "{}");
         const enhancedBody = {
           ...body,
           jobId: currentJobId,
@@ -106,33 +213,43 @@ export function GenerateResumeDialog({
     if (messages.length === 0) return;
 
     const lastMessage = messages[messages.length - 1];
-    if (lastMessage.role !== 'assistant') return;
+    if (lastMessage.role !== "assistant") return;
 
     const parts = (lastMessage as any).parts || [];
 
     parts.forEach((part: any) => {
       const toolOutput = part.result || part.output;
 
-      if (toolOutput?.action === 'generated' && toolOutput.tailoredResume) {
+      if (toolOutput?.action === "generated" && toolOutput.tailoredResume) {
         setGeneratedResume(toolOutput);
         setIsGenerating(false);
 
-        // Save resume to job in localStorage
+        // Save resume to job in Supabase
         if (job?.id) {
           const resumeData: Job["tailoredResume"] = {
             content: toolOutput.tailoredResume.content,
             masterResumeName: toolOutput.tailoredResume.masterResumeName,
             generatedAt: toolOutput.tailoredResume.generatedAt,
             changes: toolOutput.changes || [],
-            matchAnalysis: toolOutput.matchAnalysis || {
-              alignmentScore: 0,
-              addressedRequirements: [],
-              remainingGaps: [],
-              recommendations: [],
-            },
+            matchAnalysis:
+              toolOutput.matchAnalysis || {
+                alignmentScore: 0,
+                addressedRequirements: [],
+                remainingGaps: [],
+                recommendations: [],
+              },
           };
 
-          saveJobResume(job.id, resumeData);
+          fetch(`/api/jobs/${job.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({ tailoredResume: resumeData }),
+          }).catch((error) => {
+            console.error("Failed to save tailored resume to Supabase:", error);
+          });
         }
       }
     });
@@ -146,6 +263,13 @@ export function GenerateResumeDialog({
     setIsGenerating(true);
     setGeneratedResume(null);
     setMessages([]); // Clear previous conversation
+
+    const resumeWithContent = await loadResumeContent(selectedResumeId);
+
+    if (!resumeWithContent || !resumeWithContent.content) {
+      setIsGenerating(false);
+      return;
+    }
 
     // Send message to trigger resume generation
     sendMessage({
@@ -161,7 +285,7 @@ export function GenerateResumeDialog({
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      console.error("Failed to copy:", err);
     }
   };
 
@@ -169,12 +293,12 @@ export function GenerateResumeDialog({
     if (!generatedResume?.tailoredResume?.content) return;
 
     const blob = new Blob([generatedResume.tailoredResume.content], {
-      type: 'text/markdown',
+      type: "text/markdown",
     });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `${job?.company}_${job?.title}_Resume.md`.replace(/[^a-zA-Z0-9_-]/g, '_');
+    a.download = `${job?.company}_${job?.title}_Resume.md`.replace(/[^a-zA-Z0-9_-]/g, "_");
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -231,7 +355,16 @@ export function GenerateResumeDialog({
                 <Label htmlFor="resume-select">
                   Select Master Resume <span className="text-red-500">*</span>
                 </Label>
-                {resumes.length === 0 ? (
+                {resumeError ? (
+                  <div className="p-6 border border-red-200 rounded-lg bg-red-50 text-center text-sm text-red-700 flex flex-col items-center gap-2">
+                    <AlertCircle className="w-5 h-5" />
+                    <p>{resumeError}</p>
+                  </div>
+                ) : isLoadingResumes ? (
+                  <div className="p-6 border border-gray-200 rounded-lg text-center text-sm text-gray-600">
+                    Loading resumes...
+                  </div>
+                ) : resumes.length === 0 ? (
                   <div className="p-6 border-2 border-dashed border-gray-300 rounded-lg text-center">
                     <AlertCircle className="w-10 h-10 text-gray-400 mx-auto mb-2" />
                     <p className="text-gray-600 mb-2">No resumes in your library</p>
@@ -242,7 +375,7 @@ export function GenerateResumeDialog({
                 ) : (
                   <Select
                     value={selectedResumeId}
-                    onValueChange={setSelectedResumeId}
+                    onValueChange={handleResumeSelect}
                   >
                     <SelectTrigger id="resume-select">
                       <SelectValue placeholder="Choose a resume to customize" />
@@ -272,7 +405,12 @@ export function GenerateResumeDialog({
               </Button>
               <Button
                 onClick={handleGenerate}
-                disabled={!selectedResumeId || isGenerating || resumes.length === 0}
+                disabled={
+                  !selectedResumeId ||
+                  isGenerating ||
+                  resumes.length === 0 ||
+                  Boolean(resumeError)
+                }
                 className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
               >
                 {isGenerating ? (
@@ -320,9 +458,11 @@ export function GenerateResumeDialog({
                         ✅ Addressed Requirements:
                       </p>
                       <ul className="text-sm text-gray-600 space-y-1">
-                        {generatedResume.matchAnalysis.addressedRequirements.map((req: string, i: number) => (
-                          <li key={i}>• {req}</li>
-                        ))}
+                        {generatedResume.matchAnalysis.addressedRequirements.map(
+                          (req: string, i: number) => (
+                            <li key={i}>• {req}</li>
+                          )
+                        )}
                       </ul>
                     </div>
                   )}
@@ -333,9 +473,11 @@ export function GenerateResumeDialog({
                         ⚠️ Remaining Gaps:
                       </p>
                       <ul className="text-sm text-gray-600 space-y-1">
-                        {generatedResume.matchAnalysis.remainingGaps.map((gap: string, i: number) => (
-                          <li key={i}>• {gap}</li>
-                        ))}
+                        {generatedResume.matchAnalysis.remainingGaps.map(
+                          (gap: string, i: number) => (
+                            <li key={i}>• {gap}</li>
+                          )
+                        )}
                       </ul>
                     </div>
                   )}
@@ -407,27 +549,23 @@ export function GenerateResumeDialog({
                     💡 Recommendations
                   </h3>
                   <ul className="space-y-2">
-                    {generatedResume.matchAnalysis.recommendations.map((rec: string, i: number) => (
-                      <li key={i} className="text-sm text-gray-700">
-                        • {rec}
-                      </li>
-                    ))}
+                    {generatedResume.matchAnalysis.recommendations.map(
+                      (rec: string, i: number) => (
+                        <li key={i} className="text-sm text-gray-700">
+                          • {rec}
+                        </li>
+                      )
+                    )}
                   </ul>
                 </div>
               )}
             </div>
 
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
                 Close
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleRegenerate}
-              >
+              <Button variant="outline" onClick={handleRegenerate}>
                 <Sparkles className="w-4 h-4 mr-2" />
                 Regenerate
               </Button>

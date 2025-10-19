@@ -30,7 +30,9 @@ export default function JobsPage() {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch('/api/jobs');
+      const response = await fetch('/api/jobs', {
+        credentials: 'include',
+      });
 
       if (!response.ok) {
         if (response.status === 401) {
@@ -57,6 +59,7 @@ export default function JobsPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ status }),
       });
 
@@ -77,6 +80,7 @@ export default function JobsPage() {
     try {
       const response = await fetch(`/api/jobs/${jobId}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
 
       if (!response.ok) {
