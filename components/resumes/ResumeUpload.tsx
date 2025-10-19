@@ -4,12 +4,10 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload, AlertCircle, CheckCircle } from "lucide-react";
 import {
-  createResumeWithSections,
   getResumeFormat,
   validateResumeSize,
   formatResumeSize,
 } from "@/types/resume";
-import { saveResume } from "@/lib/storage/resumes";
 
 interface ResumeUploadProps {
   onUploadSuccess?: () => void;
@@ -71,16 +69,26 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
       // Get file format
       const format = getResumeFormat(file.name);
 
-      // Create resume object with parsed sections
-      const resume = createResumeWithSections(resumeName, content, format);
+      // Upload to Supabase via API
+      const formData = new FormData();
+      formData.append('name', resumeName);
+      formData.append('content', content);
+      formData.append('format', format);
 
-      // Save to localStorage
-      const saved = saveResume(resume);
+      const response = await fetch('/api/resumes/upload', {
+        method: 'POST',
+        body: formData,
+      });
 
-      if (!saved) {
-        setError("Failed to save resume. Please try again.");
-        setIsUploading(false);
-        return;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload resume');
+      }
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error('Failed to upload resume');
       }
 
       // Success!
@@ -103,7 +111,7 @@ export function ResumeUpload({ onUploadSuccess }: ResumeUploadProps) {
       }, 5000);
     } catch (err) {
       console.error("Error uploading resume:", err);
-      setError("An error occurred while uploading the file. Please try again.");
+      setError(err instanceof Error ? err.message : "An error occurred while uploading the file. Please try again.");
       setIsUploading(false);
     }
   };

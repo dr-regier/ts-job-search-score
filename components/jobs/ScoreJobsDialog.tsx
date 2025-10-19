@@ -17,8 +17,6 @@ import { Badge } from "@/components/ui/badge";
 import { Target, CheckCircle, AlertCircle, Loader2, Sparkles } from "lucide-react";
 import type { Job } from "@/types/job";
 import type { UserProfile } from "@/types/profile";
-import { getJobs, updateJobsWithScores } from "@/lib/storage/jobs";
-import { getProfile } from "@/lib/storage/profile";
 
 interface ScoreJobsDialogProps {
   open: boolean;
@@ -42,8 +40,22 @@ export function ScoreJobsDialog({
   // Load jobs and profile when dialog opens
   useEffect(() => {
     if (open) {
-      const savedJobs = getJobs();
-      const userProfile = getProfile();
+      loadJobsAndProfile();
+    }
+  }, [open]);
+
+  const loadJobsAndProfile = async () => {
+    try {
+      // Fetch jobs from API
+      const jobsResponse = await fetch('/api/jobs');
+      const jobsData = await jobsResponse.json();
+      const savedJobs = jobsData.jobs || [];
+
+      // Fetch profile from API
+      const profileResponse = await fetch('/api/profile');
+      const profileData = await profileResponse.json();
+      const userProfile = profileData.profile;
+
       setJobs(savedJobs);
       setProfile(userProfile);
 
@@ -53,9 +65,9 @@ export function ScoreJobsDialog({
 
       // Initialize selection with unscored jobs (jobs without a score)
       const unscoredJobIds = savedJobs
-        .filter(job => job.score === undefined)
-        .map(job => job.id);
-      const initialSelection = new Set(unscoredJobIds);
+        .filter((job: Job) => job.score === undefined)
+        .map((job: Job) => job.id);
+      const initialSelection = new Set<string>(unscoredJobIds);
       setSelectedJobIds(initialSelection);
       selectedJobIdsRef.current = initialSelection;
 
@@ -65,8 +77,11 @@ export function ScoreJobsDialog({
       } else if (savedJobs.length === 0) {
         setError("No saved jobs found. Please save some jobs first.");
       }
+    } catch (err) {
+      console.error('Error loading jobs and profile:', err);
+      setError("Failed to load data. Please try again.");
     }
-  }, [open]);
+  };
 
   // Setup useChat for Matching Agent
   const { messages, sendMessage, setMessages } = useChat({
@@ -75,14 +90,23 @@ export function ScoreJobsDialog({
       fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
         // Inject only selected jobs and profile into request body
         const body = JSON.parse(init?.body as string || '{}');
-        const allJobs = getJobs();
+
+        // Fetch jobs from API
+        const jobsResponse = await fetch('/api/jobs');
+        const jobsData = await jobsResponse.json();
+        const allJobs = jobsData.jobs || [];
+
         // Read from ref to get the current selection (avoids stale closure)
-        const selectedJobs = allJobs.filter(job => selectedJobIdsRef.current.has(job.id));
+        const selectedJobs = allJobs.filter((job: Job) => selectedJobIdsRef.current.has(job.id));
+
+        // Fetch profile from API
+        const profileResponse = await fetch('/api/profile');
+        const profileData = await profileResponse.json();
 
         const enhancedBody = {
           ...body,
           jobs: selectedJobs,
-          profile: getProfile(),
+          profile: profileData.profile,
         };
 
         return fetch(input, {
@@ -108,22 +132,14 @@ export function ScoreJobsDialog({
       if (toolOutput?.action === 'scored' && toolOutput.scoredJobs) {
         console.log('📊 Scored jobs received:', toolOutput);
 
-        // Update localStorage with scores
-        const success = updateJobsWithScores(toolOutput.scoredJobs);
+        // Scores are already saved to Supabase by the score-jobs tool
+        console.log('✅ Successfully updated jobs with scores in Supabase');
+        setScoredResults(toolOutput);
+        setIsScoring(false);
 
-        if (success) {
-          console.log('✅ Successfully updated jobs with scores in localStorage');
-          setScoredResults(toolOutput);
-          setIsScoring(false);
-
-          // Notify parent to refresh
-          if (onScoreComplete) {
-            onScoreComplete();
-          }
-        } else {
-          console.error('❌ Failed to update jobs with scores');
-          setError('Failed to save scores. Please try again.');
-          setIsScoring(false);
+        // Notify parent to refresh from Supabase
+        if (onScoreComplete) {
+          onScoreComplete();
         }
       }
     });

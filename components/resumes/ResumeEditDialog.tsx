@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import type { Resume } from "@/types/resume";
-import { parseResumeSections } from "@/types/resume";
-import { updateResume, updateResumeName } from "@/lib/storage/resumes";
+import { Loader2 } from "lucide-react";
 
 interface ResumeEditDialogProps {
   resume: Resume | null;
@@ -31,15 +30,46 @@ export function ResumeEditDialog({
   onSaveSuccess,
 }: ResumeEditDialogProps) {
   const [name, setName] = useState(resume?.name || "");
-  const [content, setContent] = useState(resume?.content || "");
+  const [content, setContent] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load resume content when dialog opens
+  useEffect(() => {
+    if (open && resume) {
+      loadResumeContent();
+    }
+  }, [open, resume?.id]);
+
+  const loadResumeContent = async () => {
+    if (!resume) return;
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Fetch full resume content from API
+      const response = await fetch(`/api/resumes/${resume.id}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to load resume content');
+      }
+
+      const data = await response.json();
+      setName(resume.name);
+      setContent(data.content);
+    } catch (err) {
+      console.error('Error loading resume content:', err);
+      setError("Failed to load resume content. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // Update state when resume changes
   const handleOpen = (isOpen: boolean) => {
-    if (isOpen && resume) {
-      setName(resume.name);
-      setContent(resume.content);
+    if (!isOpen) {
       setError(null);
     }
     onOpenChange(isOpen);
@@ -66,22 +96,18 @@ export function ResumeEditDialog({
         return;
       }
 
-      // Update resume content
-      const contentUpdated = updateResume(resume.id, content);
-      if (!contentUpdated) {
-        setError("Failed to update resume content.");
-        setIsSaving(false);
-        return;
-      }
+      // Update resume via API
+      const response = await fetch(`/api/resumes/${resume.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name, content }),
+      });
 
-      // Update resume name if changed
-      if (name !== resume.name) {
-        const nameUpdated = updateResumeName(resume.id, name);
-        if (!nameUpdated) {
-          setError("Failed to update resume name.");
-          setIsSaving(false);
-          return;
-        }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update resume');
       }
 
       // Success!
@@ -93,7 +119,7 @@ export function ResumeEditDialog({
       }
     } catch (err) {
       console.error("Error saving resume:", err);
-      setError("An error occurred while saving. Please try again.");
+      setError(err instanceof Error ? err.message : "An error occurred while saving. Please try again.");
       setIsSaving(false);
     }
   };
@@ -111,38 +137,49 @@ export function ResumeEditDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 py-4">
-          {/* Resume Name */}
-          <div className="space-y-2">
-            <Label htmlFor="resume-name">Resume Name</Label>
-            <Input
-              id="resume-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g., Software Engineer Resume"
-            />
-          </div>
-
-          {/* Resume Content */}
-          <div className="space-y-2">
-            <Label htmlFor="resume-content">Resume Content</Label>
-            <Textarea
-              id="resume-content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              className="font-mono text-sm min-h-[400px]"
-              placeholder="Enter your resume content here..."
-            />
-            <p className="text-sm text-gray-500">
-              Supports markdown formatting. Use headers to organize sections
-              (Summary, Experience, Skills, Education).
-            </p>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-700">{error}</p>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+              <span className="ml-3 text-gray-600">Loading resume...</span>
             </div>
+          ) : (
+            <>
+              {/* Resume Name */}
+              <div className="space-y-2">
+                <Label htmlFor="resume-name">Resume Name</Label>
+                <Input
+                  id="resume-name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g., Software Engineer Resume"
+                  disabled={isSaving}
+                />
+              </div>
+
+              {/* Resume Content */}
+              <div className="space-y-2">
+                <Label htmlFor="resume-content">Resume Content</Label>
+                <Textarea
+                  id="resume-content"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="font-mono text-sm min-h-[400px]"
+                  placeholder="Enter your resume content here..."
+                  disabled={isSaving}
+                />
+                <p className="text-sm text-gray-500">
+                  Supports markdown formatting. Use headers to organize sections
+                  (Summary, Experience, Skills, Education).
+                </p>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
+            </>
           )}
         </div>
 

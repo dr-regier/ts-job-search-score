@@ -6,9 +6,8 @@ import { ResumeUpload } from "@/components/resumes/ResumeUpload";
 import { ResumeCard } from "@/components/resumes/ResumeCard";
 import { ResumeEditDialog } from "@/components/resumes/ResumeEditDialog";
 import { Button } from "@/components/ui/button";
-import { getResumes, deleteResume } from "@/lib/storage/resumes";
 import type { Resume } from "@/types/resume";
-import { FileText, Upload, Lightbulb } from "lucide-react";
+import { FileText, Upload, Lightbulb, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -20,51 +19,92 @@ import {
 export default function ResumesPage() {
   const [resumes, setResumes] = useState<Resume[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [viewingResume, setViewingResume] = useState<Resume | null>(null);
   const [editingResume, setEditingResume] = useState<Resume | null>(null);
 
-  // Load resumes from localStorage on mount
+  // Load resumes from Supabase on mount
   useEffect(() => {
-    const loadResumes = () => {
-      const savedResumes = getResumes();
-      setResumes(savedResumes);
-      setIsLoading(false);
-    };
-
     loadResumes();
-
-    // Listen for storage events (when resumes are updated in other tabs/windows)
-    const handleStorageChange = () => {
-      loadResumes();
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
-  const handleUploadSuccess = () => {
-    // Reload resumes after successful upload
-    setResumes(getResumes());
+  const loadResumes = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const response = await fetch('/api/resumes');
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          setError("Please log in to view your resumes");
+          return;
+        }
+        throw new Error('Failed to load resumes');
+      }
+
+      const data = await response.json();
+      setResumes(data.resumes || []);
+    } catch (err) {
+      console.error('Error loading resumes:', err);
+      setError("Failed to load resumes. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleView = (resume: Resume) => {
-    setViewingResume(resume);
+  const handleUploadSuccess = async () => {
+    // Reload resumes after successful upload
+    await loadResumes();
+  };
+
+  const handleView = async (resume: Resume) => {
+    // For viewing, we need to fetch the full content from the server
+    try {
+      const response = await fetch(`/api/resumes/${resume.id}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to load resume content');
+      }
+
+      const data = await response.json();
+      // Create a complete Resume object with the fetched content
+      setViewingResume({
+        ...resume,
+        content: data.content
+      });
+    } catch (err) {
+      console.error('Error loading resume content:', err);
+      setError("Failed to load resume content. Please try again.");
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
   const handleEdit = (resume: Resume) => {
     setEditingResume(resume);
   };
 
-  const handleEditSuccess = () => {
+  const handleEditSuccess = async () => {
     // Reload resumes after successful edit
-    setResumes(getResumes());
+    await loadResumes();
   };
 
-  const handleDelete = (resumeId: string) => {
-    const success = deleteResume(resumeId);
-    if (success) {
+  const handleDelete = async (resumeId: string) => {
+    try {
+      const response = await fetch(`/api/resumes/${resumeId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete resume');
+      }
+
       // Reload resumes after deletion
-      setResumes(getResumes());
+      await loadResumes();
+    } catch (err) {
+      console.error('Error deleting resume:', err);
+      setError("Failed to delete resume. Please try again.");
+      setTimeout(() => setError(null), 3000);
     }
   };
 
@@ -75,7 +115,29 @@ export default function ResumesPage() {
         <div className="container mx-auto px-4 py-8 max-w-7xl">
           <div className="flex items-center justify-center h-96">
             <div className="text-center">
+              <Loader2 className="w-12 h-12 animate-spin text-blue-600 mx-auto mb-4" />
               <p className="text-gray-600 text-lg">Loading your resumes...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error && resumes.length === 0) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-8 max-w-7xl">
+          <div className="flex items-center justify-center h-96">
+            <div className="text-center">
+              <p className="text-red-600 text-lg mb-4">{error}</p>
+              <button
+                onClick={loadResumes}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Retry
+              </button>
             </div>
           </div>
         </div>
@@ -89,6 +151,13 @@ export default function ResumesPage() {
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="space-y-8">
+          {/* Error Message */}
+          {error && resumes.length > 0 && (
+            <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
+
           {/* Page Header */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Resume Library</h1>

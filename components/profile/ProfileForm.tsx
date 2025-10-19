@@ -10,9 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { ScoringWeights } from "./ScoringWeights";
-import { getProfile, saveProfile } from "@/lib/storage/profile";
 import { DEFAULT_SCORING_WEIGHTS, validateScoringWeights } from "@/types/profile";
 import type { UserProfile } from "@/types/profile";
+import { Loader2 } from "lucide-react";
 
 // Zod schema for form validation
 const profileSchema = z
@@ -41,9 +41,11 @@ export function ProfileForm() {
     ...DEFAULT_SCORING_WEIGHTS,
   });
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [existingProfile, setExistingProfile] = useState<UserProfile | null>(
     null
   );
+  const [isLoading, setIsLoading] = useState(true);
 
   const {
     register,
@@ -54,65 +56,131 @@ export function ProfileForm() {
     resolver: zodResolver(profileSchema),
   });
 
-  // Load existing profile on mount
+  // Load existing profile on mount from Supabase
   useEffect(() => {
-    const profile = getProfile();
-    if (profile) {
-      setExistingProfile(profile);
-      setWeights(profile.scoringWeights);
+    async function loadProfile() {
+      try {
+        setIsLoading(true);
+        const response = await fetch('/api/profile');
 
-      // Pre-populate form
-      reset({
-        name: profile.name,
-        professionalBackground: profile.professionalBackground,
-        skills: profile.skills.join(", "),
-        salaryMin: profile.salaryMin,
-        salaryMax: profile.salaryMax,
-        preferredLocations: profile.preferredLocations.join(", "),
-        jobPreferences: profile.jobPreferences.join(", "),
-        dealBreakers: profile.dealBreakers,
-      });
+        if (!response.ok) {
+          if (response.status === 401) {
+            setErrorMessage("Please log in to view your profile");
+            return;
+          }
+          throw new Error('Failed to load profile');
+        }
+
+        const data = await response.json();
+        const profile = data.profile;
+
+        if (profile) {
+          setExistingProfile(profile);
+          setWeights(profile.scoringWeights);
+
+          // Pre-populate form
+          reset({
+            name: profile.name,
+            professionalBackground: profile.professionalBackground,
+            skills: profile.skills.join(", "),
+            salaryMin: profile.salaryMin,
+            salaryMax: profile.salaryMax,
+            preferredLocations: profile.preferredLocations.join(", "),
+            jobPreferences: profile.jobPreferences.join(", "),
+            dealBreakers: profile.dealBreakers,
+          });
+        }
+      } catch (error) {
+        console.error('Error loading profile:', error);
+        setErrorMessage("Failed to load profile. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
     }
+
+    loadProfile();
   }, [reset]);
 
   const onSubmit = async (data: ProfileFormData) => {
     // Validate scoring weights
     if (!validateScoringWeights(weights)) {
-      alert("Scoring weights must sum to exactly 100%");
+      setErrorMessage("Scoring weights must sum to exactly 100%");
+      setTimeout(() => setErrorMessage(null), 5000);
       return;
     }
 
-    // Convert comma-separated strings to arrays
-    const profile: UserProfile = {
-      name: data.name,
-      professionalBackground: data.professionalBackground,
-      skills: data.skills
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      salaryMin: data.salaryMin,
-      salaryMax: data.salaryMax,
-      preferredLocations: data.preferredLocations
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      jobPreferences: data.jobPreferences
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      dealBreakers: data.dealBreakers,
-      scoringWeights: weights,
-      updatedAt: new Date().toISOString(),
-      createdVia: existingProfile?.createdVia || "form",
-    };
+    try {
+      // Clear any previous messages
+      setSuccessMessage(null);
+      setErrorMessage(null);
 
-    saveProfile(profile);
-    setSuccessMessage("Profile saved successfully!");
-    setExistingProfile(profile);
+      // Convert comma-separated strings to arrays
+      const profile: UserProfile = {
+        name: data.name,
+        professionalBackground: data.professionalBackground,
+        skills: data.skills
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        salaryMin: data.salaryMin,
+        salaryMax: data.salaryMax,
+        preferredLocations: data.preferredLocations
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        jobPreferences: data.jobPreferences
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean),
+        dealBreakers: data.dealBreakers,
+        scoringWeights: weights,
+        updatedAt: new Date().toISOString(),
+        createdVia: existingProfile?.createdVia || "form",
+      };
 
-    // Clear success message after 3 seconds
-    setTimeout(() => setSuccessMessage(null), 3000);
+      // Save to Supabase
+      const response = await fetch('/api/profile/save', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ profile }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error("Please log in to save your profile");
+        }
+        throw new Error('Failed to save profile');
+      }
+
+      const result = await response.json();
+
+      if (result.success) {
+        setSuccessMessage("Profile saved successfully!");
+        setExistingProfile(profile);
+
+        // Clear success message after 3 seconds
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        throw new Error(result.error || 'Failed to save profile');
+      }
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      setErrorMessage(error instanceof Error ? error.message : "Failed to save profile. Please try again.");
+      setTimeout(() => setErrorMessage(null), 5000);
+    }
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        <span className="ml-3 text-gray-600">Loading profile...</span>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -122,6 +190,12 @@ export function ProfileForm() {
             This profile was originally created via chat conversation with the
             AI agent.
           </p>
+        </Card>
+      )}
+
+      {errorMessage && (
+        <Card className="mb-6 p-4 bg-red-50 border-red-200">
+          <p className="text-sm text-red-800">{errorMessage}</p>
         </Card>
       )}
 
