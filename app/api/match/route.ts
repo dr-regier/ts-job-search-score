@@ -73,14 +73,18 @@ export async function POST(request: NextRequest) {
       "🚀 Initializing Firecrawl MCP client for Job Matching Agent..."
     );
     const firecrawlClient = getFirecrawlMCPClient();
-    await firecrawlClient.connect();
+    let firecrawlTools: Record<string, any> = {};
 
-    // Retrieve Firecrawl MCP tools
-    const firecrawlTools = await firecrawlClient.getTools();
-
-    console.log(
-      `🔧 Job Matching Agent has access to ${Object.keys(firecrawlTools).length} Firecrawl MCP tools`
-    );
+    try {
+      await firecrawlClient.connect();
+      firecrawlTools = await firecrawlClient.getTools();
+      console.log(
+        `🔧 Job Matching Agent has access to ${Object.keys(firecrawlTools).length} Firecrawl MCP tools`
+      );
+    } catch (error) {
+      console.error("⚠️ Firecrawl unavailable, continuing without MCP tools:", error);
+      firecrawlTools = {};
+    }
 
     const cookieHeader = request.headers.get("cookie") ?? undefined;
 

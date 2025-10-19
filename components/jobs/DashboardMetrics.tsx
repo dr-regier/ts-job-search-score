@@ -15,7 +15,9 @@ export function DashboardMetrics({ jobs }: DashboardMetricsProps) {
     (j) => j.priority === "medium"
   ).length;
 
-  const scoredJobs = jobs.filter((j) => j.score !== undefined);
+  const scoredJobs = jobs.filter(
+    (j) => j.score !== undefined && j.score !== null
+  );
   const averageScore =
     scoredJobs.length > 0
       ? scoredJobs.reduce((sum, j) => sum + (j.score || 0), 0) /

@@ -26,14 +26,18 @@ export async function POST(request: NextRequest) {
     // Initialize Firecrawl MCP client
     console.log("🚀 Initializing Firecrawl MCP client for Job Discovery Agent...");
     const firecrawlClient = getFirecrawlMCPClient();
-    await firecrawlClient.connect();
+    let firecrawlTools: Record<string, any> = {};
 
-    // Retrieve Firecrawl MCP tools
-    const firecrawlTools = await firecrawlClient.getTools();
-
-    console.log(
-      `🔧 Job Discovery Agent has access to ${Object.keys(firecrawlTools).length} Firecrawl MCP tools`
-    );
+    try {
+      await firecrawlClient.connect();
+      firecrawlTools = await firecrawlClient.getTools();
+      console.log(
+        `🔧 Job Discovery Agent has access to ${Object.keys(firecrawlTools).length} Firecrawl MCP tools`
+      );
+    } catch (error) {
+      console.error("⚠️ Firecrawl unavailable, continuing without MCP tools:", error);
+      firecrawlTools = {};
+    }
 
     // Wrap Firecrawl tools to log when they are called
     const wrappedFirecrawlTools = Object.fromEntries(
