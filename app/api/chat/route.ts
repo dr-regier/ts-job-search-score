@@ -7,7 +7,7 @@
  */
 
 import { JOB_DISCOVERY_SYSTEM_PROMPT } from "@/components/agent/prompts";
-import { searchAdzunaJobs, saveJobsToProfile } from "@/components/agent/tools";
+import { searchAdzunaJobs, saveJobsToProfile, displayJobs } from "@/components/agent/tools";
 import { getFirecrawlMCPClient } from "@/lib/mcp";
 import { openai } from "@ai-sdk/openai";
 import { streamText, convertToModelMessages, stepCountIs } from "ai";
@@ -83,15 +83,27 @@ export async function POST(request: NextRequest) {
       },
     };
 
+    const wrappedDisplayJobs = {
+      ...displayJobs,
+      execute: async (args: any) => {
+        console.log(`\n🔧 Custom Tool called: displayJobs`);
+        console.log(`   Input:`, JSON.stringify(args, null, 2));
+        const result = await displayJobs.execute(args);
+        console.log(`   Output:`, JSON.stringify(result, null, 2));
+        return result;
+      },
+    };
+
     // Combine Firecrawl MCP tools with our custom tools
     const allTools = {
       ...wrappedFirecrawlTools,
       searchAdzunaJobs: wrappedSearchAdzuna,
       saveJobsToProfile: wrappedSaveJobs,
+      displayJobs: wrappedDisplayJobs,
     };
 
     console.log(
-      `✅ Total tools available: ${Object.keys(allTools).length} (${Object.keys(firecrawlTools).length} Firecrawl + 2 custom)`
+      `✅ Total tools available: ${Object.keys(allTools).length} (${Object.keys(firecrawlTools).length} Firecrawl + 3 custom)`
     );
 
     const result = streamText({

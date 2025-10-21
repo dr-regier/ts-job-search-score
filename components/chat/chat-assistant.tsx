@@ -293,7 +293,7 @@ export default function ChatAssistant({}: ChatAssistantProps) {
           {messages.length === 0 ? (
             <ConversationEmptyState
               title="Chat with me to find jobs of interest"
-              description="Let's find you some great opportunities!"
+              description="I can search for specific roles or companies, or browse jobs in your area."
             />
           ) : (
             (() => {
@@ -471,7 +471,7 @@ export default function ChatAssistant({}: ChatAssistantProps) {
         <div className="p-4 flex-shrink-0 border-t">
           <PromptInput onSubmit={handleSubmit}>
             <PromptInputBody>
-              <PromptInputTextarea placeholder="What would you like me to do for you?" />
+              <PromptInputTextarea placeholder="Tell me what you are looking for..." />
               <PromptInputToolbar>
                 <div className="flex items-center gap-2 ml-8">
                   {/* New Chat Button */}

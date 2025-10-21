@@ -154,12 +154,15 @@ export function ChatProvider({
 
       const parts = (message as any).parts || [];
 
-      parts.forEach((part: any, partIndex: number) => {
+      parts.forEach((part: any) => {
         // Check both part.result and part.output (AI SDK uses different fields)
         const toolOutput = part.result || part.output;
 
         // Check if this is a tool result we haven't processed yet
-        if (part.type?.startsWith('tool-') && toolOutput) {
+        // Supports both 'tool-*' (AI SDK custom tools) and 'dynamic-tool' (MCP tools)
+        const isToolCall = part.type?.startsWith('tool-') || part.type === 'dynamic-tool';
+
+        if (isToolCall && toolOutput) {
           // Create unique ID for this tool call
           const toolCallId = part.toolCallId || part.id || `${message.id}-${part.type}`;
 
@@ -173,10 +176,14 @@ export function ChatProvider({
 
           // Handle jobs discovery (action: "display")
           if (toolOutput.action === 'display' && toolOutput.jobs && Array.isArray(toolOutput.jobs)) {
+            console.log(`🎯 Displaying ${toolOutput.jobs.length} jobs in carousel`);
             // Add jobs to sessionJobs, deduplicating by ID
             setSessionJobs((prevJobs) => {
               const existingIds = new Set(prevJobs.map(j => j.id));
               const newJobs = toolOutput.jobs.filter((job: Job) => !existingIds.has(job.id));
+              if (newJobs.length > 0) {
+                console.log(`   Added ${newJobs.length} new jobs (${prevJobs.length} → ${prevJobs.length + newJobs.length})`);
+              }
               return [...prevJobs, ...newJobs];
             });
             // Show carousel when jobs are discovered
@@ -185,12 +192,14 @@ export function ChatProvider({
 
           // Handle saveJobsToProfile tool result
           if (toolOutput.action === 'saved' && toolOutput.savedJobs) {
+            console.log(`💾 Jobs saved - refreshing list`);
             // Reload saved jobs state from Supabase
             refreshSavedJobs();
           }
 
           // Handle scoreJobsTool result
           if (toolOutput.action === 'scored' && toolOutput.scoredJobs) {
+            console.log(`📊 Jobs scored - refreshing list`);
             // Reload saved jobs state from Supabase
             refreshSavedJobs();
           }

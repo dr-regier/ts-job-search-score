@@ -9,6 +9,7 @@ export { searchAdzunaJobs } from "./adzuna";
 export { saveJobsToProfile } from "./save-jobs";
 export { scoreJobsTool } from "./score-jobs";
 export { generateTailoredResumeTool, getResumeGenerationContext } from "./generate-resume";
+export { displayJobs } from "./display-jobs";
 
 /**
  * Combined tools object for easy import
@@ -21,10 +22,12 @@ import { searchAdzunaJobs } from "./adzuna";
 import { saveJobsToProfile } from "./save-jobs";
 import { scoreJobsTool } from "./score-jobs";
 import { generateTailoredResumeTool } from "./generate-resume";
+import { displayJobs } from "./display-jobs";
 
 export const agentTools = {
   searchAdzunaJobs,
   saveJobsToProfile,
   scoreJobsTool,
   generateTailoredResumeTool,
+  displayJobs,
 };
