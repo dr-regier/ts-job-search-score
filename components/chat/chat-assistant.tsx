@@ -17,6 +17,18 @@ import {
   PromptInputSubmit,
 } from "@/components/ai-elements/prompt-input";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { RotateCcw, Briefcase } from "lucide-react";
+import {
   Sources,
   SourcesTrigger,
   SourcesContent,
@@ -35,6 +47,8 @@ import {
   ReasoningContent,
 } from "@/components/ai-elements/reasoning";
 import { Response } from "@/components/ai-elements/response";
+import { JobCarousel } from "@/components/jobs/JobCarousel";
+import { Button } from "@/components/ui/button";
 
 // RAG Tool types for proper TypeScript support
 type RAGToolInput = {
@@ -139,9 +153,15 @@ export default function ChatAssistant({}: ChatAssistantProps) {
     discoveryChat,
     matchingChat,
     activeAgent,
+    sessionJobs,
+    clearSessionJobs,
+    refreshSavedJobs,
+    carouselVisible,
+    setCarouselVisible,
     messageOrderRef,
     nextOrderRef,
     handleSendMessage,
+    clearChat,
   } = useChatContext();
 
   // Merge messages from both agents chronologically
@@ -245,12 +265,31 @@ export default function ChatAssistant({}: ChatAssistantProps) {
     handleSendMessage(messageText);
   };
 
+  // Handlers for JobCarousel
+  const handleJobSaved = () => {
+    // Refresh saved jobs after a job is saved via carousel
+    refreshSavedJobs();
+  };
+
+  const handleCarouselComplete = () => {
+    // Clear session jobs when carousel is complete
+    clearSessionJobs();
+    setCarouselVisible(false);
+  };
+
+  const handleCarouselClose = () => {
+    // Just hide the carousel, don't clear jobs
+    setCarouselVisible(false);
+  };
+
   const isLoading = status === "streaming";
 
   return (
-    <div className="flex flex-col h-full max-h-full overflow-hidden">
-      <Conversation className="flex-1 h-0 overflow-hidden">
-        <ConversationContent className="space-y-4">
+    <div className="flex flex-col lg:flex-row h-full max-h-full overflow-hidden">
+      {/* Main chat area - 60% width on desktop */}
+      <div className="flex flex-col flex-1 lg:w-[60%] h-full overflow-hidden">
+        <Conversation className="flex-1 h-0 overflow-hidden">
+          <ConversationContent className="space-y-4">
           {messages.length === 0 ? (
             <ConversationEmptyState
               title="Start a conversation"
@@ -429,17 +468,84 @@ export default function ChatAssistant({}: ChatAssistantProps) {
         </ConversationContent>
       </Conversation>
 
-      <div className="p-4 flex-shrink-0">
-        <PromptInput onSubmit={handleSubmit}>
-          <PromptInputBody>
-            <PromptInputTextarea placeholder="What would you like to know?" />
-            <PromptInputToolbar>
-              <div />
-              <PromptInputSubmit status={isLoading ? "submitted" : undefined} />
-            </PromptInputToolbar>
-          </PromptInputBody>
-        </PromptInput>
+        <div className="p-4 flex-shrink-0 border-t">
+          <PromptInput onSubmit={handleSubmit}>
+            <PromptInputBody>
+              <PromptInputTextarea placeholder="What would you like to know?" />
+              <PromptInputToolbar>
+                <div className="flex items-center gap-2 ml-8">
+                  {/* New Chat Button */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-foreground">
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span className="text-xs">New Chat</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will start a fresh conversation. Your saved jobs and profile
+                          data will be preserved. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={clearChat}>
+                          Clear Chat
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+                <PromptInputSubmit status={isLoading ? "submitted" : undefined} />
+              </PromptInputToolbar>
+            </PromptInputBody>
+          </PromptInput>
+        </div>
       </div>
+
+      {/* Job Carousel - side panel on desktop, overlay on mobile */}
+      {carouselVisible && (
+        <>
+          {/* Desktop: Side panel (40% width) */}
+          <div className="hidden lg:flex lg:w-[40%] border-l bg-background">
+            <JobCarousel
+              jobs={sessionJobs}
+              onJobSaved={handleJobSaved}
+              onComplete={handleCarouselComplete}
+              onClose={handleCarouselClose}
+            />
+          </div>
+
+          {/* Mobile: Full screen overlay */}
+          <div className="lg:hidden fixed inset-0 z-50 bg-black/50 animate-in fade-in">
+            <div className="absolute inset-y-0 right-0 w-full sm:w-96 bg-background shadow-2xl animate-in slide-in-from-right">
+              <JobCarousel
+                jobs={sessionJobs}
+                onJobSaved={handleJobSaved}
+                onComplete={handleCarouselComplete}
+                onClose={handleCarouselClose}
+              />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Reopen Carousel Button - show when carousel is hidden */}
+      {!carouselVisible && (
+        <div className="fixed bottom-6 right-6 z-40">
+          <Button
+            onClick={() => setCarouselVisible(true)}
+            size="lg"
+            className="shadow-lg bg-blue-600 hover:bg-blue-700 text-white gap-2"
+          >
+            <Briefcase className="w-5 h-5" />
+            {sessionJobs.length > 0 ? `View Discovered Jobs (${sessionJobs.length})` : 'Open Job Explorer'}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

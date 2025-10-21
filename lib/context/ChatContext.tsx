@@ -20,9 +20,15 @@ interface ChatContextType {
 
   // Jobs and profile state
   savedJobs: Job[];
+  sessionJobs: Job[]; // Discovered jobs not yet saved (for carousel)
   userProfile: UserProfile | null;
   refreshSavedJobs: () => void;
   refreshUserProfile: () => void;
+  clearSessionJobs: () => void;
+
+  // Carousel visibility control
+  carouselVisible: boolean;
+  setCarouselVisible: (visible: boolean) => void;
 
   // Refs for message ordering and tool processing
   messageOrderRef: React.MutableRefObject<Map<string, number>>;
@@ -47,9 +53,12 @@ export function ChatProvider({
 }) {
   // State for saved jobs and user profile (from Supabase)
   const [savedJobs, setSavedJobs] = useState<Job[]>([]);
+  const [sessionJobs, setSessionJobs] = useState<Job[]>([]); // Discovered jobs for carousel
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [activeAgent, setActiveAgent] = useState<'discovery' | 'matching'>('discovery');
   const [userId, setUserId] = useState<string | null>(null);
+  const [carouselVisible, setCarouselVisible] = useState<boolean>(true); // Open by default
+
 
   // Refs for tracking message order and processed tool calls
   const messageOrderRef = useRef<Map<string, number>>(new Map());
@@ -135,7 +144,7 @@ export function ChatProvider({
     },
   });
 
-  // Handle tool results from both agents (save jobs, score jobs)
+  // Handle tool results from both agents (save jobs, score jobs, display jobs)
   useEffect(() => {
     // Process tool results from both agents
     const allMessages = [...discoveryChat.messages, ...matchingChat.messages];
@@ -145,7 +154,7 @@ export function ChatProvider({
 
       const parts = (message as any).parts || [];
 
-      parts.forEach((part: any) => {
+      parts.forEach((part: any, partIndex: number) => {
         // Check both part.result and part.output (AI SDK uses different fields)
         const toolOutput = part.result || part.output;
 
@@ -162,18 +171,26 @@ export function ChatProvider({
           // Mark as processed
           processedToolCallsRef.current.add(toolCallId);
 
+          // Handle jobs discovery (action: "display")
+          if (toolOutput.action === 'display' && toolOutput.jobs && Array.isArray(toolOutput.jobs)) {
+            // Add jobs to sessionJobs, deduplicating by ID
+            setSessionJobs((prevJobs) => {
+              const existingIds = new Set(prevJobs.map(j => j.id));
+              const newJobs = toolOutput.jobs.filter((job: Job) => !existingIds.has(job.id));
+              return [...prevJobs, ...newJobs];
+            });
+            // Show carousel when jobs are discovered
+            setCarouselVisible(true);
+          }
+
           // Handle saveJobsToProfile tool result
           if (toolOutput.action === 'saved' && toolOutput.savedJobs) {
-            console.log('💾 Processing save tool result:', toolOutput.count, 'jobs');
-            console.log('✅ Jobs saved to Supabase via agent tool');
             // Reload saved jobs state from Supabase
             refreshSavedJobs();
           }
 
           // Handle scoreJobsTool result
           if (toolOutput.action === 'scored' && toolOutput.scoredJobs) {
-            console.log('📊 Processing score tool result:', toolOutput.scoredJobs.length, 'jobs');
-            console.log('✅ Scores saved to Supabase via agent tool');
             // Reload saved jobs state from Supabase
             refreshSavedJobs();
           }
@@ -204,6 +221,14 @@ export function ChatProvider({
   };
 
   /**
+   * Clear session jobs (discovered jobs in carousel)
+   */
+  const clearSessionJobs = () => {
+    setSessionJobs([]);
+    console.log('🧹 Session jobs cleared');
+  };
+
+  /**
    * Clear all chat history and reset to fresh state
    * Preserves saved jobs and profile data
    */
@@ -218,6 +243,9 @@ export function ChatProvider({
 
     // Clear processed tool calls tracking
     processedToolCallsRef.current.clear();
+
+    // Clear session jobs
+    clearSessionJobs();
 
     // Reset to discovery agent
     setActiveAgent('discovery');
@@ -278,9 +306,13 @@ export function ChatProvider({
     activeAgent,
     setActiveAgent,
     savedJobs,
+    sessionJobs,
     userProfile,
     refreshSavedJobs,
     refreshUserProfile,
+    clearSessionJobs,
+    carouselVisible,
+    setCarouselVisible,
     messageOrderRef,
     nextOrderRef,
     processedToolCallsRef,
