@@ -471,7 +471,7 @@ export default function ChatAssistant({}: ChatAssistantProps) {
         <div className="p-4 flex-shrink-0 border-t">
           <PromptInput onSubmit={handleSubmit}>
             <PromptInputBody>
-              <PromptInputTextarea placeholder="What would you like to know?" />
+              <PromptInputTextarea placeholder="What would you like me to do for you?" />
               <PromptInputToolbar>
                 <div className="flex items-center gap-2 ml-8">
                   {/* New Chat Button */}
