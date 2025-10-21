@@ -292,8 +292,8 @@ export default function ChatAssistant({}: ChatAssistantProps) {
           <ConversationContent className="space-y-4">
           {messages.length === 0 ? (
             <ConversationEmptyState
-              title="Start a conversation"
-              description="Ask me anything and I'll help you out!"
+              title="Chat with me to find jobs of interest"
+              description="Let's find you some great opportunities!"
             />
           ) : (
             (() => {
