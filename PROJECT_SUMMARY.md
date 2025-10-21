@@ -101,12 +101,13 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - Natural language save commands: "save top 5", "save all remote", "save jobs 2, 5, 12"
 - Saved jobs persist in Supabase database with status tracking and Row Level Security
 
-### 4. Unified Multi-Agent Chat Interface
+### 4. Unified Multi-Agent Chat Interface with Job Carousel
+- **Split-panel layout**: 60% chat area, 40% job carousel panel (desktop)
 - **React Context state management** (`lib/context/ChatContext.tsx`):
   - Global ChatContext provider wraps entire app for persistence across navigation
   - Hosts both useChat hooks (Discovery + Matching) at context level
   - Chat history persists during browser session (cleared on refresh)
-  - Manages savedJobs, userProfile, activeAgent state centrally
+  - Manages savedJobs, userProfile, activeAgent, sessionJobs, carouselVisible state centrally
   - Provides `clearChat()` method and `handleSendMessage()` with intelligent routing
 - **Dual-agent coordination**: Single conversation interface with both Discovery and Matching agents
 - **Intelligent routing**: Automatic agent selection based on user intent detection
@@ -120,6 +121,18 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
   - RotateCcw icon button at top of chat interface
   - Preserves saved jobs and profile data
   - Resets both agent conversations and message tracking
+- **Job Carousel Panel**: Real-time job discovery interface
+  - **Always visible** by default with helpful empty state when no jobs
+  - **Tinder-style interface**: Swipe through discovered jobs with keyboard navigation
+  - **JobDiscoveryCard**: Premium card design with company logo, title, description, badges
+  - **Save/Skip workflow**: Users review and save jobs with instant feedback
+  - **Progress tracking**: Visual dots, job counter, saved counter
+  - **Keyboard shortcuts**: ←/→ navigate, Enter saves, Esc skips
+  - **Closeable/reopenable**: X button to hide, floating button to reopen
+  - **Mobile responsive**: Full-screen overlay with slide-in animation
+  - **Real-time updates**: Jobs appear instantly as Discovery Agent finds them
+  - **Framer Motion animations**: Smooth slide transitions with spring physics
+  - **Toast notifications**: Success/error feedback via Sonner
 - Built with AI Elements (Vercel's pre-built AI UI components)
 - Streaming responses with visible tool execution
 - Reasoning tokens displayed as collapsible blocks

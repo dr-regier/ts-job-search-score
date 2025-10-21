@@ -41,11 +41,12 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
   - `app/jobs/` - Jobs dashboard with metrics, filtering, and management
   - `app/resumes/` - Resume library for uploading and managing resumes
 - `components/` - React components organized by feature
-  - `components/chat/` - Multi-agent chat interface
+  - `components/chat/` - Multi-agent chat interface with job carousel
   - `components/profile/` - Profile form and scoring weights UI
-  - `components/jobs/` - Jobs dashboard components (metrics, table, cards, resume generation)
+  - `components/jobs/` - Jobs dashboard and carousel components (metrics, table, cards, carousel, resume generation)
   - `components/resumes/` - Resume library components (upload, cards, editing)
   - `components/layout/` - Shared layout components (Header with navigation)
+  - `components/auth/` - Authentication components (AuthButton)
   - `components/ai-elements/` - Vercel AI Elements components
   - `components/ui/` - shadcn/ui base components
   - `components/agent/` - Agent configuration and tools
@@ -348,12 +349,13 @@ Display tool execution states using AI Elements:
 - **Global State**: `ChatContext` provider (`lib/context/ChatContext.tsx`) manages all chat state
   - Wraps entire app in `app/layout.tsx` for persistence across navigation
   - Hosts both `useChat` hooks at context level (prevents state loss on navigation)
-  - Manages savedJobs, userProfile, activeAgent state
+  - Manages savedJobs, userProfile, activeAgent, sessionJobs, carouselVisible state
   - Fetches data from Supabase API instead of localStorage
   - Provides `clearChat()` method to reset conversation while preserving data
 - **Frontend**: `ChatAssistant` component (`components/chat/chat-assistant.tsx`) with dual-agent support
-  - Simplified to 446 lines by consuming state from ChatContext
+  - Simplified by consuming state from ChatContext
   - No local state management - all state comes from context
+  - 60/40 split layout: 60% chat area, 40% job carousel panel (desktop)
 - **Multi-Agent Coordination**: Two `useChat` hooks (Discovery + Matching) merged into single conversation
 - **Intelligent Routing**: Automatic agent selection based on user intent detection
   - Keywords: 'score', 'analyze', 'match', 'fit', 'rate', 'evaluate', 'assess', 'rank', 'priority', 'compare'
@@ -370,6 +372,13 @@ Display tool execution states using AI Elements:
 - **Chat Persistence**: Chat history persists across page navigation (in-memory via ChatContext)
 - **Clear Chat Feature**: AlertDialog confirms clearing history while preserving jobs and profile
 - **Error Handling**: Graceful fallbacks for API failures via `status` monitoring
+- **Job Carousel Integration**: Side panel displays discovered jobs in real-time
+  - Open by default with helpful empty state when no jobs discovered
+  - Shows "Tinder-like" swipeable interface for reviewing discovered jobs
+  - Users can save, skip, navigate through jobs with keyboard shortcuts
+  - Closeable/reopenable for flexible workspace management
+  - Mobile: Full-screen overlay with slide-in animation
+  - Desktop: 40% width side panel with border separation
 
 ### UI Components
 
@@ -378,7 +387,7 @@ Display tool execution states using AI Elements:
   - Neutral base color with CSS variables
   - Import aliases: `@/components`, `@/lib/utils`, `@/components/ui`
   - Lucide React for icons
-  - Components used: Button, Input, Textarea, Label, Slider, Select, Badge, Card, Table, AlertDialog
+  - Components used: Button, Input, Textarea, Label, Slider, Select, Badge, Card, Table, AlertDialog, Checkbox
 - **AI Elements** from Vercel:
   - Pre-built components for AI applications
   - Located in `components/ai-elements/`
@@ -386,7 +395,12 @@ Display tool execution states using AI Elements:
   - Supports tool calls, reasoning tokens, and rich message formatting
   - Reasoning component documentation: https://ai-sdk.dev/elements/components/reasoning#reasoning
   - Reasoning tokens automatically display as collapsible blocks with duration tracking
+- **framer-motion** for animations:
+  - Carousel slide transitions with spring physics
+  - AnimatePresence for enter/exit animations
+  - Smooth card transitions between jobs
 - **react-hook-form** with Zod validation for profile forms
+- **Sonner** for toast notifications (job saved confirmations, errors)
 - **Custom animations** in `app/globals.css` for premium UI effects
 
 ### UI Pages
@@ -505,17 +519,32 @@ Display tool execution states using AI Elements:
   - SSR-safe storage operations with Row Level Security
 
 #### **Home Page / Chat Interface** (`/`)
+- **Split-panel layout**: 60% chat area, 40% job carousel (desktop)
 - **Header component** with navigation and authentication
   - Links: Chat, Jobs, Resumes, Profile
   - **AuthButton** component - Sign in/out with user email display
   - Active page highlighting
   - Navigation icons: Home (Chat), Briefcase (Jobs), FileText (Resumes), User (Profile)
-- **Clear Chat button** with confirmation dialog (AlertDialog)
-  - RotateCcw icon, outline variant
-  - Positioned at top of chat interface below header
-  - Confirms before clearing to prevent accidental data loss
-  - Preserves saved jobs and profile data
-  - Resets both agent conversations and message tracking
+- **Chat Panel** (left side, 60% width)
+  - Multi-agent conversation interface
+  - Clear Chat button with confirmation dialog (AlertDialog)
+  - Message history with tool execution visibility
+  - Streaming response support
+- **Job Carousel Panel** (right side, 40% width)
+  - **JobCarousel component** (`components/jobs/JobCarousel.tsx`) - Tinder-style job discovery interface
+  - **Always visible** by default with helpful empty state
+  - **Empty state**: Displays search icon, instructions, and example prompts when no jobs discovered
+  - **JobDiscoveryCard component** (`components/jobs/JobDiscoveryCard.tsx`) - Individual job cards with:
+    - Company logo, job title, location, salary badges
+    - Job description with expand/collapse
+    - Key requirements tags
+    - Save/Skip action buttons
+  - **Navigation**: Prev/Next buttons, keyboard shortcuts (←/→ arrows, Enter to save, Esc to skip)
+  - **Progress tracking**: Visual dots showing position in job queue, saved counter
+  - **Carousel controls**: Combined footer with navigation, progress, and keyboard hints
+  - **Close/reopen functionality**: X button to hide, floating button to reopen
+  - **Mobile responsive**: Full-screen overlay with slide-in animation
+  - **Real-time updates**: Jobs appear instantly as Discovery Agent finds them
 - **Protected Route**: Requires authentication via middleware
   - Unauthenticated users redirected to `/login`
 
