@@ -81,6 +81,23 @@ interface ChatAssistantProps {
   // No props needed - all state managed by ChatContext
 }
 
+/**
+ * Helper function to get display info for tool calls based on agent and tool name
+ */
+const getToolDisplayInfo = (toolName: string, agentSource: 'discovery' | 'matching') => {
+  if (agentSource === 'discovery') {
+    // Save jobs tool gets special treatment
+    if (toolName.includes('saveJobs')) {
+      return { icon: '💾', text: 'Saving jobs' };
+    }
+    // All other discovery tools (adzuna, firecrawl, displayJobs) are search tools
+    return { icon: '🔍', text: 'Searching for jobs' };
+  }
+
+  // Matching agent - all tools are scoring
+  return { icon: '📊', text: 'Scoring jobs' };
+};
+
 // Memoized components for better performance
 const MemoizedToolCall = memo(({
   toolPart,
@@ -116,6 +133,34 @@ const MemoizedToolCall = memo(({
 ));
 
 MemoizedToolCall.displayName = 'MemoizedToolCall';
+
+/**
+ * Simplified agent-specific tool indicator
+ * Shows user-friendly messages instead of technical tool names
+ */
+const AgentToolIndicator = memo(({
+  icon,
+  text,
+  toolPart
+}: {
+  icon: string;
+  text: string;
+  toolPart: RAGToolUIPart;
+}) => {
+  const isActive = toolPart.state === "input-streaming" || toolPart.state === "input-available";
+
+  return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 bg-muted/30 rounded-lg border">
+      <span className="text-base">{icon}</span>
+      <span className={isActive ? "animate-pulse" : ""}>
+        {text}
+        {isActive && "..."}
+      </span>
+    </div>
+  );
+});
+
+AgentToolIndicator.displayName = 'AgentToolIndicator';
 
 const MemoizedMessage = memo(({
   message,
@@ -301,25 +346,21 @@ export default function ChatAssistant({}: ChatAssistantProps) {
             />
           ) : (
             (() => {
-              // Tool display name mapping
-              const toolDisplayNames: Record<string, string> = {
-                'tool-retrieveKnowledgeBase': 'Knowledge Base Search',
-                // Add more tool mappings as needed
-              };
-
               // Extract flow items (messages + tool calls + reasoning) in chronological order
               const flowItems: Array<{
                 type: 'message' | 'tool-call' | 'reasoning';
                 data: any;
                 id: string;
                 messageId?: string;
-                displayName?: string;
+                agentSource?: 'discovery' | 'matching';
+                toolName?: string;
                 partIndex?: number;
               }> = [];
 
               messages.forEach((message) => {
                 // Process all parts in chronological order
                 const parts = (message as any).parts || [];
+                const agentSource = (message as any).agentSource;
 
                 parts.forEach((part: any, partIndex: number) => {
                   if (part.type?.startsWith('tool-')) {
@@ -328,12 +369,16 @@ export default function ChatAssistant({}: ChatAssistantProps) {
                                     part.id ||
                                     `${message.id}-${part.type}-${partIndex}`;
 
+                    // Extract tool name from the part (toolName field or from type)
+                    const toolName = part.toolName || part.type?.replace('tool-', '') || '';
+
                     flowItems.push({
                       type: 'tool-call',
                       data: part,
                       id: `tool-${uniqueId}`,
                       messageId: message.id,
-                      displayName: toolDisplayNames[part.type] || part.type,
+                      agentSource,
+                      toolName,
                       partIndex
                     });
                   } else if (part.type === 'reasoning') {
@@ -377,18 +422,20 @@ export default function ChatAssistant({}: ChatAssistantProps) {
 
               return flowItems.map((item, itemIndex) => {
                 if (item.type === 'tool-call') {
-                  // Render tool call status block
+                  // Render agent-specific tool indicator
                   const toolPart = item.data as RAGToolUIPart;
 
-                  // Tools are collapsed by default
-                  const shouldBeExpanded = false;
+                  // Get display info based on agent and tool name
+                  const agentSource = item.agentSource || 'discovery'; // Default to discovery
+                  const toolName = item.toolName || '';
+                  const displayInfo = getToolDisplayInfo(toolName, agentSource);
 
                   return (
-                    <div key={item.id} className="w-full mb-4">
-                      <MemoizedToolCall
+                    <div key={item.id} className="w-full mb-3">
+                      <AgentToolIndicator
+                        icon={displayInfo.icon}
+                        text={displayInfo.text}
                         toolPart={toolPart}
-                        displayName={item.displayName || toolPart.type}
-                        shouldBeExpanded={shouldBeExpanded}
                       />
                     </div>
                   );
