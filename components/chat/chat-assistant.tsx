@@ -535,7 +535,7 @@ export default function ChatAssistant({}: ChatAssistantProps) {
 
       {/* Reopen Carousel Button - show when carousel is hidden */}
       {!carouselVisible && (
-        <div className="fixed bottom-6 right-6 z-40">
+        <div className="fixed bottom-24 right-6 z-40">
           <Button
             onClick={() => setCarouselVisible(true)}
             size="lg"
