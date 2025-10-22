@@ -25,6 +25,7 @@ interface ChatContextType {
   refreshSavedJobs: () => void;
   refreshUserProfile: () => void;
   clearSessionJobs: () => void;
+  removeJobFromSession: (jobId: string) => void;
 
   // Carousel visibility control
   carouselVisible: boolean;
@@ -238,6 +239,17 @@ export function ChatProvider({
   };
 
   /**
+   * Remove a specific job from session jobs (when user saves it)
+   */
+  const removeJobFromSession = (jobId: string) => {
+    setSessionJobs((prevJobs) => {
+      const filtered = prevJobs.filter(job => job.id !== jobId);
+      console.log(`🗑️ Removed job ${jobId} from session (${prevJobs.length} → ${filtered.length})`);
+      return filtered;
+    });
+  };
+
+  /**
    * Clear all chat history and reset to fresh state
    * Preserves saved jobs and profile data
    */
@@ -318,6 +330,7 @@ export function ChatProvider({
     refreshSavedJobs,
     refreshUserProfile,
     clearSessionJobs,
+    removeJobFromSession,
     carouselVisible,
     setCarouselVisible,
     messageOrderRef,

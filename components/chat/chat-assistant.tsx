@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, memo } from "react";
 import { type ToolUIPart } from "ai";
+import type { Job } from "@/types/job";
 import { useChatContext } from "@/lib/context/ChatContext";
 import {
   Conversation,
@@ -155,6 +156,7 @@ export default function ChatAssistant({}: ChatAssistantProps) {
     activeAgent,
     sessionJobs,
     clearSessionJobs,
+    removeJobFromSession,
     refreshSavedJobs,
     carouselVisible,
     setCarouselVisible,
@@ -266,8 +268,10 @@ export default function ChatAssistant({}: ChatAssistantProps) {
   };
 
   // Handlers for JobCarousel
-  const handleJobSaved = () => {
-    // Refresh saved jobs after a job is saved via carousel
+  const handleJobSaved = (job: Job) => {
+    // Remove job from carousel after saving
+    removeJobFromSession(job.id);
+    // Refresh saved jobs list
     refreshSavedJobs();
   };
 
