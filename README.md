@@ -6,13 +6,19 @@ An intelligent job search and matching system powered by multi-agent AI architec
 
 ### Multi-Agent AI System
 - **Unified Multi-Agent Chat** - Single conversation interface with intelligent routing:
-  - **Job Discovery Agent** - Autonomously searches jobs across company career pages and job boards
+  - **Job Discovery Agent** - Autonomously searches jobs with **progressive display** (jobs appear as discovered)
   - **Job Matching Agent** - Analyzes job fit with intelligent scoring and gap identification
   - **Resume Generator Agent** - AI-powered resume tailoring for specific job opportunities
   - **Intent Detection** - Automatically routes to appropriate agent based on user's message
   - **Seamless Coordination** - Multiple agents work in same conversation with merged message streams
   - **Chat Persistence** - Conversation history persists across page navigation (in-memory via React Context)
   - **Clear Chat** - Reset conversation with confirmation dialog while preserving saved jobs and profile
+- **Progressive Job Carousel** - Jobs appear incrementally as agent discovers them (real-time streaming)
+  - Tinder-style swipeable interface with keyboard shortcuts
+  - Framer Motion animations with spring physics
+  - Embla Carousel for smooth touch/swipe gestures
+  - Save/skip workflow with instant feedback
+  - Mobile-responsive full-screen overlay
 - **Multi-Source Job Search** - Combines Firecrawl web scraping with Adzuna API for comprehensive coverage (gracefully handles Firecrawl failures)
 - **Intelligent Job Scoring** - Weighted scoring system (0-100) with detailed reasoning and gap analysis
 - **AI-Powered Resume Tailoring** - Generate customized resumes for specific jobs using GPT-5 with optimized completion tracking

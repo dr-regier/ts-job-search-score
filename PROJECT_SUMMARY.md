@@ -35,14 +35,15 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 ### Multi-Agent System
 
 **Job Discovery Agent** (`/api/chat/route.ts`)
-- **Purpose**: Autonomous job search across multiple sources
-- **Tools**: Firecrawl MCP (scrape, search), Adzuna API, web search, save jobs
+- **Purpose**: Autonomous job search across multiple sources with progressive display
+- **Tools**: Firecrawl MCP (scrape, search), Adzuna API, web search, display jobs, save jobs
 - **Capabilities**:
   - Decides which sources to search based on user query
   - Autonomously refines searches if initial results are insufficient
   - Determines when enough jobs have been found
+  - **Progressive display**: Calls displayJobs after parsing each batch for incremental carousel updates
   - Presents jobs temporarily (user must explicitly save)
-- **Prompt**: 146-line system prompt defining autonomous behavior
+- **Prompt**: 157-line system prompt defining autonomous behavior and progressive display
 
 **Job Matching Agent** (`/api/match/route.ts`)
 - **Purpose**: Intelligent job fit analysis and scoring
@@ -121,8 +122,9 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
   - RotateCcw icon button at top of chat interface
   - Preserves saved jobs and profile data
   - Resets both agent conversations and message tracking
-- **Job Carousel Panel**: Real-time job discovery interface
+- **Job Carousel Panel**: Progressive job discovery interface
   - **Always visible** by default with helpful empty state when no jobs
+  - **Progressive display**: Jobs appear incrementally as agent discovers them (not all at once)
   - **Tinder-style interface**: Swipe through discovered jobs with keyboard navigation
   - **JobDiscoveryCard**: Premium card design with company logo, title, description, badges
   - **Save/Skip workflow**: Users review and save jobs with instant feedback
@@ -130,9 +132,10 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
   - **Keyboard shortcuts**: ←/→ navigate, Enter saves, Esc skips
   - **Closeable/reopenable**: X button to hide, floating button to reopen
   - **Mobile responsive**: Full-screen overlay with slide-in animation
-  - **Real-time updates**: Jobs appear instantly as Discovery Agent finds them
-  - **Framer Motion animations**: Smooth slide transitions with spring physics
+  - **Framer Motion animations** (v12.23.24): Smooth slide transitions with spring physics
+  - **Embla Carousel** (v8.6.0): Touch/swipe gestures with momentum scrolling
   - **Toast notifications**: Success/error feedback via Sonner
+  - **Tool Detection**: Monitors both `tool-*` and `dynamic-tool` types for MCP compatibility
 - Built with AI Elements (Vercel's pre-built AI UI components)
 - Streaming responses with visible tool execution
 - Reasoning tokens displayed as collapsible blocks
@@ -258,7 +261,17 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 ```typescript
 - Input: scoredJobs[] (with score, breakdown, reasoning, gaps, priority)
 - Output: Scored data with action: "scored", statistics
-- Behavior: Returns analysis for client-side localStorage update
+- Behavior: Returns analysis for client-side Supabase update
+```
+
+### Display Jobs Tool (`components/agent/tools/display-jobs.ts`)
+```typescript
+- Input: jobs[] (structured Job objects)
+- Output: Jobs with action: "display" for carousel detection
+- Performance: ~0.05ms execution time with validation
+- Purpose: Bridges Firecrawl's raw HTML parsing to UI carousel display
+- Architecture: Firecrawl scrape → Agent parses → displayJobs → Carousel
+- Progressive Display: Called incrementally after each batch for real-time UX
 ```
 
 ### Generate Tailored Resume Tool (`components/agent/tools/generate-resume.ts`)
@@ -462,24 +475,34 @@ ADZUNA_API_KEY          # Job board search
 
 ### 2. Tool-Calling LLMs
 - Integrated MCP protocol for dynamic tool loading
-- Created 4 custom tools with Zod validation
-- Wrapped all tools with logging for debugging
+- Created 5 custom tools with Zod validation:
+  1. Adzuna API search (job boards)
+  2. Display Jobs (progressive carousel bridge)
+  3. Save Jobs (user selection)
+  4. Score Jobs (fit analysis)
+  5. Generate Resume (tailored resumes)
+- Wrapped all tools with logging and performance timing
 - Proper error handling and fallback behaviors
 - Custom transport in useChat for context injection (Resume Generator)
+- Support for both `tool-*` (custom) and `dynamic-tool` (MCP) type detection
 
 ### 3. Advanced Prompting
-- 146-line Job Discovery prompt with autonomous decision criteria
+- 157-line Job Discovery prompt with autonomous decision criteria and progressive display
 - 214-line Job Matching prompt with detailed scoring methodology
 - 293-line Resume Generator prompt with explicit authenticity rules
 - Clear definitions of success/failure conditions
-- Examples of autonomous decision-making loops
+- Examples of autonomous decision-making loops with progressive updates
 - Emphasis on maintaining authenticity (never fabricating experience)
+- Progressive display pattern: Scrape → Parse → displayJobs → Repeat
 
-### 4. Web Scraping Integration
+### 4. Web Scraping Integration with Progressive Display
 - MCP client implementation for Firecrawl
 - Dynamic tool discovery and execution
 - Handles scraping errors gracefully
 - Combines multiple sources (scraping + API)
+- **Progressive display architecture**: displayJobs tool bridges Firecrawl's raw HTML to UI
+- Real-time carousel updates as jobs are parsed (~0.05ms per batch)
+- Improved perceived performance through incremental updates
 
 ### 5. Intelligent Scoring System
 - Configurable weighted scoring (5 factors, must sum to 100)
@@ -493,11 +516,14 @@ ADZUNA_API_KEY          # Job board search
 - Interface definitions for all data models
 - Type utilities for derived types (JobSource, ApplicationStatus, etc.)
 
-### 7. Modern UI/UX
+### 7. Modern UI/UX with Progressive Display
 - AI Elements for transparent tool execution
 - Streaming responses with real-time feedback
 - Collapsible reasoning blocks
 - Natural language commands throughout
+- **Progressive job carousel**: Jobs appear incrementally as discovered
+- **Framer Motion** (v12.23.24) for smooth animations with spring physics
+- **Embla Carousel** (v8.6.0) for touch/swipe gestures
 - **Authentication UI** with Supabase Auth and Google OAuth
 - **Protected routes** with automatic login redirect
 - **Form-based profile management** with react-hook-form + Zod validation

@@ -77,7 +77,7 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
   - **Job Matching Agent** (`/api/match`) - Intelligent scoring and fit analysis
   - **Resume Generator Agent** (`/api/resume`) - AI-powered resume tailoring for specific jobs
 - MCP Firecrawl integration via `getFirecrawlMCPClient()` in `/lib/mcp/`
-- Custom tools: Adzuna API search, save jobs, score jobs, generate tailored resumes
+- Custom tools: Adzuna API search, display jobs (progressive carousel), save jobs, score jobs, generate tailored resumes
 - System instructions defined in `components/agent/prompts/`
 - Agent coordination via localStorage (no direct agent-to-agent calls)
 - use useChat for all streaming handling (read the doc first, always, before writing any streaming code: https://ai-sdk.dev/docs/reference/ai-sdk-ui/use-chat)
@@ -90,12 +90,13 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
 
 ### Agent Architecture
 
-**Job Discovery Agent** - Autonomously finds jobs across multiple sources
-- Tools: Firecrawl MCP (scrape, search), Adzuna API, web search, save jobs
-- Responsibilities: Search strategy, source selection, result refinement, job discovery
-- Output: Temporary job listings displayed in chat (user must explicitly save)
+**Job Discovery Agent** - Autonomously finds jobs across multiple sources with progressive display
+- Tools: Firecrawl MCP (scrape, search), Adzuna API, web search, display jobs, save jobs
+- Responsibilities: Search strategy, source selection, result refinement, job discovery, progressive display
+- Output: Jobs displayed incrementally in carousel as discovered (progressive UX)
 - API: `/api/chat/route.ts`
 - Prompt: `components/agent/prompts/job-discovery-prompt.ts`
+- Progressive Display: Calls `displayJobs` after parsing each batch for real-time carousel updates
 
 **Job Matching Agent** - Analyzes jobs against user profile with detailed scoring
 - Tools: Firecrawl MCP (for company research), web search, score jobs
@@ -232,6 +233,15 @@ const wrappedTools = Object.fromEntries(
 - Used by Job Matching Agent to return analysis results
 - Client-side handler updates localStorage
 
+**Display Jobs Tool** (`components/agent/tools/display-jobs.ts`)
+- Displays structured job data in the carousel (progressive display bridge)
+- Input: jobs array (structured Job objects)
+- Output: Jobs with action: "display" for carousel detection
+- Performance: Executes in ~0.05ms with validation and logging
+- Purpose: Bridges agent's internal job parsing (from Firecrawl scrapes) to UI carousel
+- Architecture: Firecrawl returns raw HTML → Agent parses → displayJobs formats → Carousel displays
+- Progressive Display: Called incrementally after each batch for real-time updates
+
 **Generate Tailored Resume Tool** (`components/agent/tools/generate-resume.ts`)
 - Generates tailored resumes for specific job opportunities
 - Input: jobId, masterResumeId, jobTitle, jobCompany, masterResumeName, tailoredResumeContent, changes array, matchAnalysis
@@ -240,7 +250,7 @@ const wrappedTools = Object.fromEntries(
 - Context injection: Job details, requirements, master resume content, user profile formatted as string
 - Architecture: Client passes job/resume objects to server; server passes to agent; agent returns complete data
 - Used by Resume Generator Agent to return tailored resume results
-- Client-side handler automatically saves resume to job via `saveJobResume()` in localStorage
+- Client-side handler automatically saves resume to job via `saveJobResume()` in Supabase
 - Changes tracked by type: reorder, keyword, emphasis, summary, trim, section_move
 
 #### Creating New Tools and Agents
@@ -372,13 +382,16 @@ Display tool execution states using AI Elements:
 - **Chat Persistence**: Chat history persists across page navigation (in-memory via ChatContext)
 - **Clear Chat Feature**: AlertDialog confirms clearing history while preserving jobs and profile
 - **Error Handling**: Graceful fallbacks for API failures via `status` monitoring
-- **Job Carousel Integration**: Side panel displays discovered jobs in real-time
+- **Job Carousel Integration**: Side panel displays discovered jobs with progressive updates
+  - **Progressive Display**: Jobs appear incrementally as agent discovers them (real-time streaming)
   - Open by default with helpful empty state when no jobs discovered
   - Shows "Tinder-like" swipeable interface for reviewing discovered jobs
   - Users can save, skip, navigate through jobs with keyboard shortcuts
   - Closeable/reopenable for flexible workspace management
   - Mobile: Full-screen overlay with slide-in animation
   - Desktop: 40% width side panel with border separation
+  - **Tool Detection**: ChatContext monitors `tool-*` and `dynamic-tool` types for carousel updates
+  - **Performance**: Incremental updates create better perceived speed (~0.05ms per displayJobs call)
 
 ### UI Components
 
@@ -395,10 +408,15 @@ Display tool execution states using AI Elements:
   - Supports tool calls, reasoning tokens, and rich message formatting
   - Reasoning component documentation: https://ai-sdk.dev/elements/components/reasoning#reasoning
   - Reasoning tokens automatically display as collapsible blocks with duration tracking
-- **framer-motion** for animations:
+- **framer-motion** (v12.23.24) for animations:
   - Carousel slide transitions with spring physics
   - AnimatePresence for enter/exit animations
   - Smooth card transitions between jobs
+  - Progressive job appearance animations
+- **embla-carousel-react** (v8.6.0) for carousel functionality:
+  - Touch/swipe gestures for job navigation
+  - Keyboard navigation support
+  - Smooth scrolling between job cards
 - **react-hook-form** with Zod validation for profile forms
 - **Sonner** for toast notifications (job saved confirmations, errors)
 - **Custom animations** in `app/globals.css` for premium UI effects
@@ -544,7 +562,9 @@ Display tool execution states using AI Elements:
   - **Carousel controls**: Combined footer with navigation, progress, and keyboard hints
   - **Close/reopen functionality**: X button to hide, floating button to reopen
   - **Mobile responsive**: Full-screen overlay with slide-in animation
-  - **Real-time updates**: Jobs appear instantly as Discovery Agent finds them
+  - **Progressive display**: Jobs appear incrementally as Discovery Agent finds them (not all at once)
+  - **Framer Motion animations**: Smooth slide-in effects with spring physics
+  - **Embla Carousel**: Touch/swipe support with momentum scrolling
 - **Protected Route**: Requires authentication via middleware
   - Unauthenticated users redirected to `/login`
 
