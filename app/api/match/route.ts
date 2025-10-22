@@ -29,11 +29,11 @@ export async function POST(request: NextRequest) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { messages } = await request.json();
+    const { messages, jobs: bodyJobs, profile: bodyProfile } = await request.json();
 
-    // Fetch jobs and profile from Supabase
-    const jobs = await getJobs(supabase, user.id);
-    const profile = await getProfile(supabase, user.id);
+    // Use jobs/profile from body if provided (ScoreJobsDialog), otherwise fetch from Supabase (chat interface)
+    const jobs = bodyJobs && bodyJobs.length > 0 ? bodyJobs : await getJobs(supabase, user.id);
+    const profile = bodyProfile || await getProfile(supabase, user.id);
 
     console.log('\n' + '═'.repeat(60));
     console.log('📊 JOB MATCHING AGENT ACTIVATED');
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Validation passed:`);
     console.log(`   - Profile: ${profile.name || 'Anonymous'}`);
-    console.log(`   - Jobs to analyze: ${jobs.length}`);
+    console.log(`   - Jobs to analyze: ${jobs.length} (from ${bodyJobs && bodyJobs.length > 0 ? 'selection' : 'Supabase'})`);
     console.log(`   - User messages: ${messages.length}`);
 
     const modelMessages = convertToModelMessages(messages);

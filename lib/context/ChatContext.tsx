@@ -289,9 +289,7 @@ export function ChatProvider({
         console.log('✅ Routing to MATCHING: Scoring intent + saved jobs + profile');
         console.log('Endpoint: POST /api/match\n');
         setActiveAgent('matching');
-        // Clear matching chat history before sending new message
-        // (Prevents reasoning tokens from previous responses being sent back)
-        matchingChat.setMessages([]);
+        // Pass full conversation history for context-aware scoring
         matchingChat.sendMessage({ text: messageText });
       }
     } else if (wantsScoring && savedJobs.length === 0) {

@@ -150,6 +150,11 @@ export function ScoreJobsDialog({
         if (onScoreComplete) {
           onScoreComplete();
         }
+
+        // Auto-close dialog after brief success confirmation (2 seconds)
+        setTimeout(() => {
+          handleClose();
+        }, 2000);
       }
     });
   }, [messages]);
