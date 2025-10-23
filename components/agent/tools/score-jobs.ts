@@ -2,10 +2,12 @@
  * Score Jobs Tool
  *
  * Allows the Job Matching Agent to return scored jobs with analysis.
- * Returns data for client-side handler to update localStorage.
+ * Updates Supabase database directly with score data.
  */
 
 import { z } from "zod";
+import { updateJobsWithScores } from "@/lib/supabase/queries";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Score Jobs Tool
@@ -70,9 +72,15 @@ export const scoreJobsTool = {
 
   execute: async (
     { scoredJobs }: { scoredJobs: any[] },
-    context?: { cookie?: string }
+    context?: { supabase?: SupabaseClient; userId?: string }
   ) => {
     console.log(`🎯 Score Jobs Tool called for ${scoredJobs.length} job(s)`);
+
+    // Validate context
+    if (!context?.supabase || !context?.userId) {
+      console.error('❌ Missing Supabase client or userId in context');
+      throw new Error('Supabase client and userId required');
+    }
 
     // Log score summary
     scoredJobs.forEach((job: any) => {
@@ -96,34 +104,19 @@ export const scoreJobsTool = {
     );
 
     try {
-      const baseUrl =
-        process.env.NEXT_PUBLIC_SITE_URL ??
-        (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+      // Update jobs with scores directly in Supabase (no internal API call)
+      const success = await updateJobsWithScores(
+        context.supabase,
+        context.userId,
+        scoredJobs
+      );
 
-      // Save scores to Supabase via API route (absolute URL required server-side)
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-      };
-
-      if (context?.cookie) {
-        headers.Cookie = context.cookie;
+      if (!success) {
+        console.error('❌ Failed to update jobs with scores in database');
+        throw new Error('Failed to save scores to database');
       }
 
-      const response = await fetch(new URL("/api/jobs/score", baseUrl), {
-        method: "POST",
-        headers,
-        credentials: "include",
-        body: JSON.stringify({ scoredJobs }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('❌ Failed to save scores:', error);
-        throw new Error(error.error || 'Failed to save scores');
-      }
-
-      const result = await response.json();
-      console.log(`✅ Successfully saved scores for ${result.count} jobs to database`);
+      console.log(`✅ Successfully saved scores for ${scoredJobs.length} jobs to database`);
 
       return {
         action: "scored",
