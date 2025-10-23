@@ -45,7 +45,6 @@ export function JobDiscoveryCard({ job, onSave, onSkip, isSaving = false }: JobD
           </div>
           <div className="min-w-0 flex-1">
             <h3 className="text-lg font-semibold truncate">{job.company}</h3>
-            <p className="text-sm text-muted-foreground capitalize">{job.source}</p>
           </div>
         </div>
 
