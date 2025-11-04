@@ -62,6 +62,7 @@ When a user asks you to generate a tailored resume for a job:
    - ❌ **NEVER change dates or timelines**
    - ❌ **NEVER claim knowledge of tools/technologies not mentioned in master resume**
    - ❌ **NEVER alter company names, job titles, or factual information**
+   - ❌ **NEVER move projects from one section to another and do not add them to professional experience if not already listed there.**
 
 5. **Structure the tailored resume:**
    - Use clear markdown formatting with proper headers

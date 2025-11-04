@@ -102,8 +102,9 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
 - Tools: Firecrawl MCP (for company research), web search, score jobs
 - Responsibilities: Job fit analysis, weighted scoring, gap identification, priority assignment
 - Output: Scored jobs with reasoning, breakdown, and recommendations
-- API: `/api/match/route.ts`
+- API: `/api/match/route.ts` (accepts jobs/profile from request body OR fetches from Supabase)
 - Prompt: `components/agent/prompts/job-matching-prompt.ts`
+- **Context-aware**: Full chat history passed to agent for improved scoring based on conversation context
 
 **Resume Generator Agent** - Tailors master resumes for specific job opportunities
 - Tools: Firecrawl MCP (for company research), web search, generate tailored resume
@@ -362,17 +363,22 @@ Display tool execution states using AI Elements:
   - Manages savedJobs, userProfile, activeAgent, sessionJobs, carouselVisible state
   - Fetches data from Supabase API instead of localStorage
   - Provides `clearChat()` method to reset conversation while preserving data
+  - Provides `removeJobFromSession()` to remove jobs from carousel after saving
 - **Frontend**: `ChatAssistant` component (`components/chat/chat-assistant.tsx`) with dual-agent support
   - Simplified by consuming state from ChatContext
   - No local state management - all state comes from context
   - 60/40 split layout: 60% chat area, 40% job carousel panel (desktop)
+  - **Agent-specific tool indicators**: User-friendly icons and messages instead of technical tool names
+    - Discovery Agent: 🔍 "Searching for jobs" or 💾 "Saving jobs"
+    - Matching Agent: 📊 "Scoring jobs"
+    - Clean, non-technical UI improves user experience
 - **Multi-Agent Coordination**: Two `useChat` hooks (Discovery + Matching) merged into single conversation
 - **Intelligent Routing**: Automatic agent selection based on user intent detection
   - Keywords: 'score', 'analyze', 'match', 'fit', 'rate', 'evaluate', 'assess', 'rank', 'priority', 'compare'
   - Checks for saved jobs and profile before routing to Matching Agent
 - **API Routes**:
   - `/api/chat` - Job Discovery Agent
-  - `/api/match` - Job Matching Agent (fetches jobs and profile from Supabase)
+  - `/api/match` - Job Matching Agent (accepts jobs/profile from body OR fetches from Supabase)
   - `/api/resume` - Resume Generator Agent (tailors resumes for jobs)
 - **Message Merging**: `React.useMemo` combines messages from both agents chronologically
 - **Message Format**: Messages have `parts` array with typed parts (text, tool, etc.), NOT simple `content` field
@@ -380,10 +386,12 @@ Display tool execution states using AI Elements:
 - **Streaming**: Official `useChat` hook handles streaming automatically for both agents
 - **State Management**: Supabase integration via API routes, auto-refresh after agent actions
 - **Chat Persistence**: Chat history persists across page navigation (in-memory via ChatContext)
+  - **Full chat history passed to Matching Agent**: Improves scoring quality with conversation context
 - **Clear Chat Feature**: AlertDialog confirms clearing history while preserving jobs and profile
 - **Error Handling**: Graceful fallbacks for API failures via `status` monitoring
 - **Job Carousel Integration**: Side panel displays discovered jobs with progressive updates
   - **Progressive Display**: Jobs appear incrementally as agent discovers them (real-time streaming)
+  - **Auto-removal on save**: Jobs removed from carousel immediately after user saves them
   - Open by default with helpful empty state when no jobs discovered
   - Shows "Tinder-like" swipeable interface for reviewing discovered jobs
   - Users can save, skip, navigate through jobs with keyboard shortcuts
@@ -497,8 +505,10 @@ Display tool execution states using AI Elements:
   - Select all/none functionality
   - Unscored jobs filter option
   - Uses Job Matching Agent to score selected jobs
+  - Passes selected jobs directly to Matching Agent (bypasses Supabase fetch)
   - Real-time progress tracking
   - Auto-refreshes jobs list after scoring
+  - Serverless-compatible (works on Vercel deployments)
 
 #### **Resume Library** (`/resumes`)
 - Clean, professional design matching Profile page style

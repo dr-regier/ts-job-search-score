@@ -50,10 +50,13 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - **Tools**: Firecrawl MCP (company research), web search, score jobs
 - **Capabilities**:
   - Analyzes jobs against user profile using LLM reasoning
+  - **Context-aware scoring**: Receives full chat history for improved analysis quality
   - Generates weighted scores (0-100) across 5 categories
   - Identifies qualification gaps with actionable feedback
   - Assigns priority levels (high ≥85, medium 70-84, low <70)
+  - **Flexible data source**: Accepts jobs/profile from request body OR fetches from Supabase
 - **Prompt**: 214-line system prompt defining scoring methodology
+- **Serverless-compatible**: Works on Vercel deployments with proper context handling
 
 **Resume Generator Agent** (`/api/resume/route.ts`)
 - **Purpose**: AI-powered resume tailoring for specific job opportunities
@@ -110,10 +113,12 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
   - Chat history persists during browser session (cleared on refresh)
   - Manages savedJobs, userProfile, activeAgent, sessionJobs, carouselVisible state centrally
   - Provides `clearChat()` method and `handleSendMessage()` with intelligent routing
+  - Provides `removeJobFromSession()` to remove jobs from carousel after saving
 - **Dual-agent coordination**: Single conversation interface with both Discovery and Matching agents
 - **Intelligent routing**: Automatic agent selection based on user intent detection
   - Keywords: 'score', 'analyze', 'match', 'fit', 'rate', 'evaluate', 'assess', 'rank', 'priority', 'compare'
   - Routes to Matching Agent when scoring keywords + saved jobs + profile exist
+  - **Full chat history passed to Matching Agent** for context-aware scoring
   - Checks for saved jobs and profile before routing
 - **Message merging**: Chronologically combined messages from both agents
 - **Context-aware**: Routes to Matching Agent when scoring keywords detected + saved jobs exist
@@ -122,9 +127,15 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
   - RotateCcw icon button at top of chat interface
   - Preserves saved jobs and profile data
   - Resets both agent conversations and message tracking
+- **Agent-specific tool indicators**: User-friendly UI improvements
+  - Discovery Agent: 🔍 "Searching for jobs" or 💾 "Saving jobs"
+  - Matching Agent: 📊 "Scoring jobs"
+  - Clean, non-technical messages instead of raw tool names
+  - Improves user experience with clear activity indicators
 - **Job Carousel Panel**: Progressive job discovery interface
   - **Always visible** by default with helpful empty state when no jobs
   - **Progressive display**: Jobs appear incrementally as agent discovers them (not all at once)
+  - **Auto-removal on save**: Jobs removed from carousel immediately after user saves them
   - **Tinder-style interface**: Swipe through discovered jobs with keyboard navigation
   - **JobDiscoveryCard**: Premium card design with company logo, title, description, badges
   - **Save/Skip workflow**: Users review and save jobs with instant feedback
@@ -462,16 +473,22 @@ ADZUNA_API_KEY          # Job board search
 - Implemented **ChatContext** (`lib/context/ChatContext.tsx`) for global state management:
   - Hosts both useChat hooks at context level
   - Chat persists across page navigation during browser session
-  - Centralized state for savedJobs, userProfile, activeAgent
+  - Centralized state for savedJobs, userProfile, activeAgent, sessionJobs
   - Fetches data from Supabase API instead of localStorage
-  - Provides clearChat() and handleSendMessage() methods
+  - Provides clearChat(), handleSendMessage(), and removeJobFromSession() methods
+  - **Context-aware scoring**: Full chat history passed to Matching Agent for improved analysis
 - Implemented **dual `useChat` hooks** in single component for seamless coordination
 - **Intelligent routing system** with keyword-based intent detection
 - **Message stream merging** using React.useMemo for chronological display
+- **Agent-specific UI indicators**: Clean, user-friendly tool activity messages
+  - Discovery Agent: 🔍 "Searching for jobs" / 💾 "Saving jobs"
+  - Matching Agent: 📊 "Scoring jobs"
+  - Non-technical messages improve user experience
 - Indirect coordination via shared state (Supabase database)
 - Demonstrated autonomous decision-making within each agent's domain
 - Clear separation of concerns (discovery vs. analysis vs. resume generation)
 - Graceful handling of edge cases (no profile, no saved jobs, no resumes)
+- **Serverless-compatible**: Works on Vercel deployments with proper context handling
 
 ### 2. Tool-Calling LLMs
 - Integrated MCP protocol for dynamic tool loading
@@ -518,10 +535,13 @@ ADZUNA_API_KEY          # Job board search
 
 ### 7. Modern UI/UX with Progressive Display
 - AI Elements for transparent tool execution
+- **Agent-specific tool indicators**: User-friendly messages (🔍 Searching, 💾 Saving, 📊 Scoring) instead of technical tool names
 - Streaming responses with real-time feedback
 - Collapsible reasoning blocks
 - Natural language commands throughout
 - **Progressive job carousel**: Jobs appear incrementally as discovered
+  - **Auto-removal on save**: Jobs removed from carousel after user saves them
+  - Cleaner UX with immediate feedback
 - **Framer Motion** (v12.23.24) for smooth animations with spring physics
 - **Embla Carousel** (v8.6.0) for touch/swipe gestures
 - **Authentication UI** with Supabase Auth and Google OAuth
@@ -534,12 +554,13 @@ ADZUNA_API_KEY          # Job board search
 - **Two-phase dialog** for resume generation (selection → generated result)
 - **Resume persistence**: Generated resumes saved to database and viewable via ViewResumeDialog
 - **Conditional UI**: View Resume button appears when tailored resume exists
-- **Batch operations**: ScoreJobsDialog for selecting and scoring multiple jobs
+- **Batch operations**: ScoreJobsDialog for selecting and scoring multiple jobs (serverless-compatible)
 - **Copy/download functionality** for generated resumes
 - **Custom animations** (gradient-x, fade-in, slide-up, pulse-soft)
 - **Responsive design** with mobile-first approach
 - **Loading states** with spinners for all async operations
 - **Error handling** with user-friendly messages and retry buttons
+- **Vercel deployment ready**: All features work on serverless infrastructure
 
 ## Learning Outcomes
 
@@ -768,4 +789,4 @@ const allRawMessages = React.useMemo(() => {
 
 ---
 
-*Last updated: January 2025*
+*Last updated: October 24, 2025*

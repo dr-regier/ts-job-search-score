@@ -8,13 +8,17 @@ An intelligent job search and matching system powered by multi-agent AI architec
 - **Unified Multi-Agent Chat** - Single conversation interface with intelligent routing:
   - **Job Discovery Agent** - Autonomously searches jobs with **progressive display** (jobs appear as discovered)
   - **Job Matching Agent** - Analyzes job fit with intelligent scoring and gap identification
+    - **Context-aware**: Receives full chat history for improved scoring quality
+    - **Flexible**: Works in chat interface OR batch scoring dialog
   - **Resume Generator Agent** - AI-powered resume tailoring for specific job opportunities
   - **Intent Detection** - Automatically routes to appropriate agent based on user's message
   - **Seamless Coordination** - Multiple agents work in same conversation with merged message streams
   - **Chat Persistence** - Conversation history persists across page navigation (in-memory via React Context)
   - **Clear Chat** - Reset conversation with confirmation dialog while preserving saved jobs and profile
+  - **User-friendly tool indicators** - Clean activity messages (🔍 Searching, 💾 Saving, 📊 Scoring) instead of technical tool names
 - **Progressive Job Carousel** - Jobs appear incrementally as agent discovers them (real-time streaming)
   - Tinder-style swipeable interface with keyboard shortcuts
+  - **Auto-removal on save** - Jobs automatically removed from carousel after saving
   - Framer Motion animations with spring physics
   - Embla Carousel for smooth touch/swipe gestures
   - Save/skip workflow with instant feedback
@@ -24,6 +28,7 @@ An intelligent job search and matching system powered by multi-agent AI architec
 - **AI-Powered Resume Tailoring** - Generate customized resumes for specific jobs using GPT-5 with optimized completion tracking
 - **Natural Language Commands** - Find, save, and score jobs through conversation
 - **AI Elements Components** - Rich UI components for tool calls, reasoning, and structured outputs
+- **Vercel Deployment Ready** - Serverless-compatible with proper context handling
 
 ### User Interface
 - **Profile Management** (`/profile`) - Create and edit your professional profile:
@@ -36,7 +41,9 @@ An intelligent job search and matching system powered by multi-agent AI architec
   - **Salary column** in jobs table - displays salary information or "Not specified"
   - Advanced filtering (by priority and status)
   - Multiple sorting options (score, date, company)
-  - **Score Jobs button** integrated into filters area for quick access
+  - **Score Jobs button** integrated into filters area for quick batch scoring
+    - Select multiple jobs to score at once
+    - Serverless-compatible for Vercel deployments
   - Status tracking per job (Saved → Applied → Interviewing → Offer/Rejected)
   - **Expandable rows** - Click any job to view detailed score breakdown, reasoning, and gaps
   - **View Resume** button (📄) - Appears when tailored resume exists, opens saved resume
@@ -141,6 +148,11 @@ Go to the chat interface (`/`) and tell the agent what you're looking for:
 - "Search for remote product manager roles in fintech"
 - "Show me senior software engineer positions in San Francisco"
 
+**Features**:
+- Jobs appear incrementally in the carousel as the agent discovers them (progressive display)
+- User-friendly activity indicators show what the agent is doing (🔍 Searching, 💾 Saving, 📊 Scoring)
+- Saved jobs automatically removed from carousel for cleaner UX
+
 **Tip**: Use the "Clear Chat" button (with refresh icon) at the top to start a new conversation. This resets the chat history while keeping your saved jobs and profile.
 
 ### 3. Save Interesting Jobs
@@ -153,7 +165,13 @@ The agent finds jobs temporarily. Explicitly save the ones you like:
 Get detailed fit analysis in the same conversation:
 - "Score my saved jobs"
 - The agent analyzes each job against your profile with reasoning and gap identification
+- **Context-aware**: Agent receives full chat history for improved scoring quality
 - Scores appear with detailed breakdowns and missing qualifications
+
+You can also batch score jobs from the Jobs Dashboard:
+- Click "Score Jobs" button in the filters area
+- Select multiple jobs to score at once
+- Works seamlessly on Vercel deployments
 
 ### 5. Upload Your Resumes
 Navigate to the Resume Library (`/resumes`):
@@ -178,7 +196,10 @@ Navigate to the Jobs Dashboard (`/jobs`):
 - **Click any job row to expand** and view detailed score breakdown, reasoning, and gaps
 - Filter by priority (High/Medium/Low) or status
 - Sort by score, date, or company
-- **Batch score jobs** - Click "Score Jobs" button in filters area to select multiple jobs and score them at once
+- **Batch score jobs** - Click "Score Jobs" button in filters area
+  - Select multiple jobs to score at once
+  - Context-aware scoring with chat history
+  - Serverless-compatible for cloud deployments
 - Update job status as you progress (Saved → Applied → Interviewing → Offer/Rejected)
 - **View tailored resumes** - Click 📄 icon to see saved resume (appears after generation)
 - **Remove unwanted jobs** - Click the trash icon to permanently delete a job (with confirmation)
@@ -244,12 +265,15 @@ Key Features:
 - **React Context state**: Chat persists across navigation via ChatContext
 - **Intelligent routing**: Keywords trigger appropriate agent
 - **Message merging**: Chronologically combined streams
-- **Context-aware**: Checks for required data before routing
+- **Context-aware scoring**: Full chat history passed to Matching Agent for improved quality
+- **User-friendly UI**: Agent-specific activity indicators (🔍 Searching, 💾 Saving, 📊 Scoring)
+- **Carousel auto-cleanup**: Jobs removed from carousel immediately after saving
 - **Resume tailoring**: AI analyzes job requirements and reorders content (with optimized completion tracking)
 - **Authenticity**: Never fabricates experience, only reorders and emphasizes
 - **Communication via Supabase**: Shared state with Row Level Security
 - **Graceful degradation**: Agents continue without MCP tools if Firecrawl fails
 - **Protected routes**: Middleware enforces authentication
+- **Vercel deployment**: Serverless-compatible with proper context handling
 ```
 
 ### Data Flow
