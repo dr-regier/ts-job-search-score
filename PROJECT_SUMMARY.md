@@ -645,7 +645,7 @@ ADZUNA_API_KEY          # Job board search
 ## Repository Structure
 
 ```
-capstone-job-search-score/
+smart-job-search/
 ├── app/
 │   ├── api/
 │   │   ├── chat/route.ts              # Job Discovery Agent
