@@ -5,7 +5,7 @@
  * and transcribes audio using ElevenLabs Speech-to-Text API.
  */
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import type {
   VoiceRecordingState,
   RecordingStatus,
@@ -49,9 +49,20 @@ export function useVoiceRecording() {
     audioBlob: null,
   });
 
+  // Initialize isSupported to false to match SSR default
+  // Will be updated after mount (client-side only) to prevent hydration mismatch
+  const [isSupported, setIsSupported] = useState(false);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Check browser compatibility only on client-side after mount
+  // This prevents hydration mismatch between server and client rendering
+  useEffect(() => {
+    const compatibility = checkBrowserCompatibility();
+    setIsSupported(compatibility.isSupported);
+  }, []);
 
   /**
    * Get current recording status for UI
@@ -286,6 +297,6 @@ export function useVoiceRecording() {
     reset,
 
     // Utilities
-    isSupported: checkBrowserCompatibility().isSupported,
+    isSupported,
   };
 }
