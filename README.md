@@ -20,6 +20,12 @@ An intelligent job search and matching system powered by multi-agent AI architec
   - Save/skip workflow with instant feedback
   - Mobile-responsive full-screen overlay
 - **Multi-Source Job Search** - Combines Firecrawl web scraping with Adzuna API for comprehensive coverage (gracefully handles Firecrawl failures)
+- **Voice Input** - Speech-to-Text powered by ElevenLabs for hands-free job searches
+  - Click microphone button in chat to record audio (max 10 seconds)
+  - ElevenLabs `scribe_v1` model transcribes speech accurately
+  - Transcript populates input field for review before submitting
+  - Visual feedback with pulsing red animation during recording
+  - Browser compatibility checks (Chrome, Firefox, Safari)
 - **Intelligent Job Scoring** - Weighted scoring system (0-100) with detailed reasoning and gap analysis
 - **AI-Powered Resume Tailoring** - Generate customized resumes for specific jobs using GPT-5 with optimized completion tracking
 - **Natural Language Commands** - Find, save, and score jobs through conversation
@@ -100,6 +106,7 @@ An intelligent job search and matching system powered by multi-agent AI architec
    # AI APIs
    OPENAI_API_KEY=your_openai_api_key_here
    FIRECRAWL_API_KEY=your_firecrawl_api_key_here
+   ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
    ADZUNA_APP_ID=your_adzuna_app_id_here
    ADZUNA_API_KEY=your_adzuna_api_key_here
 
@@ -111,6 +118,7 @@ An intelligent job search and matching system powered by multi-agent AI architec
    **Where to get API keys:**
    - **OpenAI** - [https://platform.openai.com/api-keys](https://platform.openai.com/api-keys)
    - **Firecrawl** - [https://firecrawl.dev](https://firecrawl.dev)
+   - **ElevenLabs** - [https://elevenlabs.io](https://elevenlabs.io)
    - **Adzuna** - [https://developer.adzuna.com](https://developer.adzuna.com)
    - **Supabase** - Project Settings → API in your Supabase dashboard
 

@@ -26,6 +26,7 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - **Integrations**:
   - Model Context Protocol (MCP) with Firecrawl for web scraping
   - Adzuna API for job board searches
+  - ElevenLabs API for Speech-to-Text (voice input)
 - **UI**: shadcn/ui (Radix UI + Tailwind CSS v4), AI Elements
 - **Forms**: react-hook-form 7.65+ with @hookform/resolvers and Zod validation
 - **State Management**: Supabase with Row Level Security (RLS)
@@ -96,13 +97,25 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - **Gap identification**: Lists missing qualifications with context
 - **Priority assignment**: Auto-categorizes jobs by score threshold
 
-### 3. Explicit Save Workflow
+### 3. Voice Input for Hands-Free Search
+- **Speech-to-Text integration** using ElevenLabs API
+- **VoiceInputButton** component with microphone icon in chat interface
+- **Browser audio capture**: MediaRecorder API (max 10 seconds recording)
+- **ElevenLabs STT**: `scribe_v1` model for accurate transcription
+- **Callback pattern**: Prevents race conditions between recording stop and transcription
+- **Visual feedback**: Pulsing red animation during recording, spinner during processing
+- **User review workflow**: Transcript populates input field for editing before submission
+- **Browser compatibility**: Chrome, Firefox, Safari support with graceful fallback
+- **Error handling**: Mic permission checks, recording validation, API error recovery
+- **Custom hook**: `useVoiceRecording` manages recording state and lifecycle
+
+### 4. Explicit Save Workflow
 - Jobs discovered are **temporary** (displayed in chat)
 - User must **explicitly save** jobs to profile
 - Natural language save commands: "save top 5", "save all remote", "save jobs 2, 5, 12"
 - Saved jobs persist in Supabase database with status tracking and Row Level Security
 
-### 4. Unified Multi-Agent Chat Interface with Job Carousel
+### 5. Unified Multi-Agent Chat Interface with Job Carousel
 - **Split-panel layout**: 60% chat area, 40% job carousel panel (desktop)
 - **React Context state management** (`lib/context/ChatContext.tsx`):
   - Global ChatContext provider wraps entire app for persistence across navigation
@@ -141,7 +154,7 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - Reasoning tokens displayed as collapsible blocks
 - Natural language interaction for all operations
 
-### 5. Profile Management UI
+### 6. Profile Management UI
 - **Form-based profile creation** (`/profile`):
   - Comprehensive ProfileForm component with react-hook-form + Zod validation
   - Fields: Name, Professional Background (min 10 chars), Skills (comma-separated)
@@ -157,7 +170,7 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
 - **Success messages** and indicators if profile was created via chat
 - **createdVia** field tracks profile origin ("chat" | "form")
 
-### 6. Jobs Dashboard
+### 7. Jobs Dashboard
 - **Premium dashboard UI** (`/jobs`) with professional design quality:
   - **HeroSection**: Animated gradient banner (blue → purple → blue)
   - **DashboardMetrics**: 5 metric cards with real-time calculations (displayed at top)
@@ -192,7 +205,7 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
   - pulse-soft (2s ease-in-out infinite)
 - **Responsive design**: Mobile-first with breakpoints for tablet and desktop
 
-### 7. Resume Library & AI-Powered Tailoring
+### 8. Resume Library & AI-Powered Tailoring
 - **Resume upload and management** (`/resumes`):
   - Upload .md, .markdown, .txt files (max 50KB)
   - Clean, professional page design matching Profile page style
@@ -223,14 +236,14 @@ Job seekers spend 10-20+ hours per week manually searching for positions across 
   - SSR-safe storage operations
   - Automatic section parsing for structured data
 
-### 8. Navigation & Layout
+### 9. Navigation & Layout
 - **Header component** with unified navigation
 - Links to Chat (`/`), Jobs (`/jobs`), Resumes (`/resumes`), Profile (`/profile`)
 - Active page highlighting
 - Icons: Home (Chat), Briefcase (Jobs), FileText (Resumes), User (Profile)
 - Consistent across all pages
 
-### 9. Authentication & Data Persistence
+### 10. Authentication & Data Persistence
 - **Supabase Authentication**: Email/password and Google OAuth
 - **Row Level Security (RLS)**: User data isolation at database level
 - **PostgreSQL Database**: Server-side persistence with triggers and constraints
@@ -441,6 +454,7 @@ ADZUNA_API_KEY          # Job board search
 - `ai` (5.0.44+): AI SDK with tool calling and streaming
 - `@ai-sdk/openai`, `@ai-sdk/react`: OpenAI integration and React hooks
 - `@modelcontextprotocol/sdk`: MCP client for Firecrawl
+- `@elevenlabs/elevenlabs-js` (2.22.0): ElevenLabs SDK for Speech-to-Text
 - `@supabase/supabase-js` (2.75+): Supabase JavaScript client
 - `@supabase/ssr` (0.7+): Supabase SSR utilities for Next.js
 - `@supabase/auth-helpers-nextjs` (0.10+): Authentication helpers
@@ -516,7 +530,16 @@ ADZUNA_API_KEY          # Job board search
 - Interface definitions for all data models
 - Type utilities for derived types (JobSource, ApplicationStatus, etc.)
 
-### 7. Modern UI/UX with Progressive Display
+### 7. Voice Input Integration with ElevenLabs
+- Browser-based audio recording using MediaRecorder API
+- ElevenLabs Speech-to-Text integration with `scribe_v1` model
+- Custom `useVoiceRecording` hook with callback pattern (prevents race conditions)
+- Visual feedback states: idle, recording (pulsing red), processing, error
+- Transcript review workflow before submission
+- Comprehensive error handling and browser compatibility checks
+- Accessible UI with ARIA labels and keyboard support
+
+### 8. Modern UI/UX with Progressive Display
 - AI Elements for transparent tool execution
 - Streaming responses with real-time feedback
 - Collapsible reasoning blocks

@@ -29,6 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { RotateCcw, Briefcase } from "lucide-react";
+import { VoiceInputButton } from "@/components/voice/VoiceInputButton";
 import {
   Sources,
   SourcesTrigger,
@@ -243,6 +244,10 @@ export default function ChatAssistant({}: ChatAssistantProps) {
   // Debounced messages for performance - update every 30ms instead of every token
   const [debouncedMessages, setDebouncedMessages] = useState(allRawMessages);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Voice input ref and state
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const [inputValue, setInputValue] = useState("");
   const lastRawMessagesRef = useRef(allRawMessages);
 
   useEffect(() => {
@@ -308,8 +313,27 @@ export default function ChatAssistant({}: ChatAssistantProps) {
       form.reset();
     }
 
+    // Clear input value state
+    setInputValue("");
+
     // Send message through context - it handles intelligent routing
     handleSendMessage(messageText);
+  };
+
+  // Handler for voice transcript
+  const handleVoiceTranscript = (transcript: string) => {
+    // Update the input value
+    setInputValue(transcript);
+
+    // Focus the textarea for user review
+    if (textareaRef.current) {
+      textareaRef.current.value = transcript;
+      textareaRef.current.focus();
+
+      // Trigger input event for proper form state update
+      const event = new Event('input', { bubbles: true });
+      textareaRef.current.dispatchEvent(event);
+    }
   };
 
   // Handlers for JobCarousel
@@ -522,7 +546,20 @@ export default function ChatAssistant({}: ChatAssistantProps) {
         <div className="p-4 flex-shrink-0 border-t">
           <PromptInput onSubmit={handleSubmit}>
             <PromptInputBody>
-              <PromptInputTextarea placeholder="Tell me what you are looking for..." />
+              <div className="flex items-start gap-2 px-2 pt-2">
+                <VoiceInputButton
+                  onTranscript={handleVoiceTranscript}
+                  disabled={status === "streaming"}
+                />
+                <div className="flex-1">
+                  <PromptInputTextarea
+                    ref={textareaRef}
+                    placeholder="Tell me what you are looking for..."
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                  />
+                </div>
+              </div>
               <PromptInputToolbar>
                 <div className="flex items-center gap-2 ml-8">
                   {/* New Chat Button */}
