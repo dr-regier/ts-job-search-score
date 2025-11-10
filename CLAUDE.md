@@ -27,6 +27,7 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
 - **AI SDK 5** with OpenAI GPT-5 integration
 - **MCP (Model Context Protocol)** with Firecrawl for web scraping
 - **Adzuna API** for job board searches
+- **ElevenLabs** for Speech-to-Text (voice input)
 - **Supabase** for authentication, PostgreSQL database, and file storage
 - **shadcn/ui** components (New York style, neutral base color)
 - **Tailwind CSS v4** for styling
@@ -37,6 +38,7 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
   - `app/api/chat/` - Job Discovery Agent endpoint (Firecrawl MCP + Adzuna + custom tools)
   - `app/api/match/` - Job Matching Agent endpoint (scoring and fit analysis)
   - `app/api/resume/` - Resume Generator Agent endpoint (resume tailoring for jobs)
+  - `app/api/transcribe/` - Speech-to-Text API endpoint (ElevenLabs integration)
   - `app/profile/` - User profile creation and editing page
   - `app/jobs/` - Jobs dashboard with metrics, filtering, and management
   - `app/resumes/` - Resume library for uploading and managing resumes
@@ -45,6 +47,7 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
   - `components/profile/` - Profile form and scoring weights UI
   - `components/jobs/` - Jobs dashboard and carousel components (metrics, table, cards, carousel, resume generation)
   - `components/resumes/` - Resume library components (upload, cards, editing)
+  - `components/voice/` - Voice input components (VoiceInputButton)
   - `components/layout/` - Shared layout components (Header with navigation)
   - `components/auth/` - Authentication components (AuthButton)
   - `components/ai-elements/` - Vercel AI Elements components
@@ -63,10 +66,13 @@ This is a TypeScript Next.js 15 application with AI-powered job search and match
   - `lib/storage/` - Legacy localStorage utilities (deprecated, use Supabase)
   - `lib/context/` - React Context providers for global state management
   - `lib/utils.ts` - Utility functions including `cn()` for className merging
+- `hooks/` - Custom React hooks
+  - `useVoiceRecording.ts` - Voice recording and transcription hook
 - `types/` - TypeScript type definitions
   - `job.ts` - Job interface with scoring data and tailoredResume field for persisted resumes
   - `profile.ts` - User profile and scoring weights interfaces
   - `resume.ts` - Resume library interfaces with section parsing
+  - `voice.ts` - Voice recording and transcription types
 
 ### AI Integration
 
@@ -380,6 +386,7 @@ Display tool execution states using AI Elements:
   - `/api/chat` - Job Discovery Agent
   - `/api/match` - Job Matching Agent (accepts jobs/profile from body OR fetches from Supabase)
   - `/api/resume` - Resume Generator Agent (tailors resumes for jobs)
+  - `/api/transcribe` - Speech-to-Text API (ElevenLabs STT integration)
 - **Message Merging**: `React.useMemo` combines messages from both agents chronologically
 - **Message Format**: Messages have `parts` array with typed parts (text, tool, etc.), NOT simple `content` field
 - **Sending Messages**: MUST use `sendMessage({ text: "message" })` format - string format does NOT work
@@ -389,6 +396,16 @@ Display tool execution states using AI Elements:
   - **Full chat history passed to Matching Agent**: Improves scoring quality with conversation context
 - **Clear Chat Feature**: AlertDialog confirms clearing history while preserving jobs and profile
 - **Error Handling**: Graceful fallbacks for API failures via `status` monitoring
+- **Voice Input**: Speech-to-Text integration for hands-free search
+  - **VoiceInputButton** component with microphone icon next to chat input
+  - MediaRecorder API for browser audio capture (up to 10 seconds)
+  - ElevenLabs STT API (`scribe_v1` model) for transcription
+  - Callback pattern prevents race conditions between recording and transcription
+  - Visual states: idle, recording (pulsing red), processing, error
+  - Transcript populates input field for user review before submission
+  - Browser compatibility checking (Chrome, Firefox, Safari support)
+  - Error handling for mic permissions, recording failures, API issues
+  - Custom hook: `useVoiceRecording` in `hooks/useVoiceRecording.ts`
 - **Job Carousel Integration**: Side panel displays discovered jobs with progressive updates
   - **Progressive Display**: Jobs appear incrementally as agent discovers them (real-time streaming)
   - **Auto-removal on save**: Jobs removed from carousel immediately after user saves them
@@ -598,6 +615,7 @@ Create `.env.local` with:
 # AI APIs
 OPENAI_API_KEY=your_openai_api_key_here
 FIRECRAWL_API_KEY=your_firecrawl_api_key_here
+ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
 ADZUNA_APP_ID=your_adzuna_app_id_here
 ADZUNA_API_KEY=your_adzuna_api_key_here
 
@@ -609,6 +627,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<your-anon-key>
 **Required APIs:**
 - **OpenAI API** - GPT-5 for agent reasoning and responses ([Get API Key](https://platform.openai.com/api-keys))
 - **Firecrawl API** - Web scraping for company career pages ([Get API Key](https://firecrawl.dev))
+- **ElevenLabs API** - Speech-to-Text for voice input ([Get API Key](https://elevenlabs.io))
 - **Adzuna API** - Job board search across multiple sources ([Get API Key](https://developer.adzuna.com))
 - **Supabase** - Authentication, PostgreSQL database, and file storage ([Create Project](https://supabase.com))
 

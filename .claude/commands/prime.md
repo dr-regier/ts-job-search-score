@@ -9,4 +9,4 @@ Read and understand the following project documentation files to get context on 
 2. **PROJECT_SUMMARY.md** - Comprehensive project overview and architecture
 3. **README.md** - Project README and setup information
 
-After reading these files, provide a brief summary confirming you've been primed with the project context.
+After reading these files, simply reply "DONE".
