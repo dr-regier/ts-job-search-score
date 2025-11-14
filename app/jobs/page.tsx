@@ -95,6 +95,62 @@ export default function JobsPage() {
     }
   };
 
+  const handleBulkJobRemove = async (jobIds: string[]) => {
+    try {
+      // Delete jobs in parallel
+      await Promise.all(
+        jobIds.map((jobId) =>
+          fetch(`/api/jobs/${jobId}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          })
+        )
+      );
+
+      // Reload jobs after bulk removal
+      await loadJobs();
+    } catch (err) {
+      console.error('Error deleting jobs:', err);
+      setError("Failed to delete some jobs. Please try again.");
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
+  const handleBulkScore = async (jobIds: string[]) => {
+    try {
+      // Get the jobs to score
+      const jobsToScore = jobs.filter((job) => jobIds.includes(job.id));
+
+      // Call the match API to score the jobs
+      const response = await fetch('/api/match', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'user',
+              content: `Score these ${jobsToScore.length} jobs against my profile.`,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to score jobs');
+      }
+
+      // Reload jobs after scoring completes
+      await loadJobs();
+    } catch (err) {
+      console.error('Error scoring jobs:', err);
+      setError("Failed to score jobs. Please try again.");
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
   const handleGenerateResume = (job: Job) => {
     setGeneratingForJob(job);
   };
@@ -167,10 +223,10 @@ export default function JobsPage() {
             <JobTable
               jobs={jobs}
               onStatusUpdate={handleStatusUpdate}
-              onJobRemove={handleJobRemove}
+              onBulkRemove={handleBulkJobRemove}
+              onBulkScore={handleBulkScore}
               onGenerateResume={handleGenerateResume}
               onViewResume={handleViewResume}
-              onScoreJobsClick={handleOpenScoreDialog}
             />
           </div>
         </div>
