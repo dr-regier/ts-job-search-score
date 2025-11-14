@@ -7,7 +7,8 @@ import { ResumeCard } from "@/components/resumes/ResumeCard";
 import { ResumeEditDialog } from "@/components/resumes/ResumeEditDialog";
 import { Button } from "@/components/ui/button";
 import type { Resume } from "@/types/resume";
-import { FileText, Upload, Lightbulb, Loader2 } from "lucide-react";
+import { FileText, Upload, Lightbulb, Loader2, Info } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -166,6 +167,38 @@ export default function ResumesPage() {
               and generate tailored versions for specific opportunities.
             </p>
           </div>
+
+          {/* How Resumes Are Used - Context Callout */}
+          <Card className="p-5 bg-blue-50 border-blue-200">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-semibold text-blue-900 mb-2">
+                  How resumes are used
+                </h3>
+                <ul className="space-y-1.5 text-sm text-blue-800">
+                  <li className="flex items-start gap-2">
+                    <span className="font-semibold mt-0.5">📊 Not used for job scoring</span>
+                    <span className="text-blue-700">
+                      - Scoring uses your Profile data (Professional Background, Skills, etc.)
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-semibold mt-0.5">✨ Used for AI resume tailoring</span>
+                    <span className="text-blue-700">
+                      - Select a master resume when generating customized versions for specific jobs
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="font-semibold mt-0.5">💼 Upload multiple resumes</span>
+                    <span className="text-blue-700">
+                      - Choose the best fit per job role (e.g., technical vs. leadership focus)
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </Card>
 
           {/* Upload Section */}
           <div className="bg-white rounded-lg p-6 border border-gray-200">
