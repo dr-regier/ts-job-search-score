@@ -237,31 +237,31 @@ export function ProfileForm() {
               </p>
               <ul className="space-y-2 text-sm text-gray-700">
                 <li>
-                  <strong>🎯 Salary Match (30%)</strong>
+                  <strong>🎯 Salary Match</strong>
                   <br />
                   → Uses: Salary Range
                   <br />→ Full points if job salary overlaps your range
                 </li>
                 <li>
-                  <strong>📍 Location Fit (20%)</strong>
+                  <strong>📍 Location Fit</strong>
                   <br />
                   → Uses: Preferred Locations
                   <br />→ Full points if job is remote or matches your locations
                 </li>
                 <li>
-                  <strong>🏢 Company Fit (25%)</strong>
+                  <strong>🏢 Company Fit</strong>
                   <br />
                   → Uses: Company Preferences
                   <br />→ AI analyzes if company aligns with your preferences
                 </li>
                 <li>
-                  <strong>💼 Role Match (15%)</strong>
+                  <strong>💼 Role Match</strong>
                   <br />
                   → Uses: Professional Background
                   <br />→ AI checks if job title/level matches your experience
                 </li>
                 <li>
-                  <strong>✅ Requirements Fit (10%)</strong>
+                  <strong>✅ Requirements Fit</strong>
                   <br />
                   → Uses: Skills, Professional Background
                   <br />→ AI calculates what % of requirements you meet
@@ -355,7 +355,7 @@ export function ProfileForm() {
               <TooltipContent className="max-w-xs">
                 <p className="text-xs">
                   Critical for scoring - jobs within your range get full points for Salary
-                  Match (weighted at 30% by default).
+                  Match.
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -398,8 +398,7 @@ export function ProfileForm() {
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 <p className="text-xs">
-                  Critical for scoring - matching locations get full points for Location Fit
-                  (weighted at 20% by default).
+                  Critical for scoring - matching locations get full points for Location Fit.
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -433,8 +432,19 @@ export function ProfileForm() {
 
         {/* Company Preferences - NEW */}
         <div className="space-y-2">
-          <Label htmlFor="companyPreferences">
+          <Label htmlFor="companyPreferences" className="flex items-center gap-2">
             What makes a company appealing to you? (optional)
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">
+                  Describe your ideal company - industries, size, culture, values. Used for
+                  Company Fit scoring.
+                </p>
+              </TooltipContent>
+            </Tooltip>
           </Label>
           <Textarea
             id="companyPreferences"
@@ -442,10 +452,6 @@ export function ProfileForm() {
             placeholder="e.g., I prefer remote-first companies in fintech or climate tech with strong engineering cultures and good work-life balance. I'm drawn to mission-driven startups (Series B+) or established tech companies with good reputations."
             rows={4}
           />
-          <p className="text-xs text-muted-foreground">
-            💡 Describe your ideal company - industries, size, culture, values. Used for
-            Company Fit scoring (default weight: 25%).
-          </p>
           {errors.companyPreferences && (
             <p className="text-sm text-red-600">
               {errors.companyPreferences.message}
@@ -455,17 +461,26 @@ export function ProfileForm() {
 
         {/* Deal Breakers */}
         <div className="space-y-2">
-          <Label htmlFor="dealBreakers">Deal Breakers (optional)</Label>
+          <Label htmlFor="dealBreakers" className="flex items-center gap-2">
+            Deal Breakers (optional)
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">
+                  Jobs matching these criteria will be flagged and scored lower. Be specific
+                  about hard limits.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </Label>
           <Textarea
             id="dealBreakers"
             {...register("dealBreakers")}
             placeholder="e.g., No travel >25%, No on-call rotations, No crypto/Web3 companies, Must be fully remote"
             rows={3}
           />
-          <p className="text-xs text-muted-foreground">
-            ⚠️ Jobs matching these criteria will be flagged and scored lower. Be specific
-            about hard limits.
-          </p>
           {errors.dealBreakers && (
             <p className="text-sm text-red-600">
               {errors.dealBreakers.message}
