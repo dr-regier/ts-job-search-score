@@ -29,6 +29,9 @@ export interface UserProfile {
   /** Deal breakers or requirements that disqualify jobs */
   dealBreakers: string;
 
+  /** Description of ideal company (industries, size, culture, values) - used for Company Fit scoring (optional) */
+  companyPreferences?: string;
+
   /** Weights for scoring categories (must sum to 100) */
   scoringWeights: {
     /** Weight for salary match (default 30) */

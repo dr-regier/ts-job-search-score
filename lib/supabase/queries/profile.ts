@@ -47,6 +47,7 @@ export async function getProfile(
       preferredLocations: data.preferred_locations || [],
       jobPreferences: data.job_preferences || [],
       dealBreakers: data.deal_breakers || "",
+      companyPreferences: data.company_preferences || undefined,
       scoringWeights: data.scoring_weights || {
         salaryMatch: 30,
         locationFit: 20,
@@ -91,6 +92,7 @@ export async function saveProfile(
         preferred_locations: profile.preferredLocations,
         job_preferences: profile.jobPreferences,
         deal_breakers: profile.dealBreakers,
+        company_preferences: profile.companyPreferences || null,
         scoring_weights: profile.scoringWeights,
         created_via: profile.createdVia,
         updated_at: new Date().toISOString(),

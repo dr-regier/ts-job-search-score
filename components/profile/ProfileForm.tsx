@@ -9,10 +9,21 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from "@/components/ui/collapsible";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { ScoringWeights } from "./ScoringWeights";
 import { DEFAULT_SCORING_WEIGHTS, validateScoringWeights } from "@/types/profile";
 import type { UserProfile } from "@/types/profile";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info, ChevronDown } from "lucide-react";
 
 // Zod schema for form validation
 const profileSchema = z
@@ -26,6 +37,7 @@ const profileSchema = z
     salaryMax: z.number().min(0, "Salary maximum must be positive"),
     preferredLocations: z.string().min(1, "Preferred locations are required"),
     jobPreferences: z.string().min(1, "Job preferences are required"),
+    companyPreferences: z.string().optional(),
     dealBreakers: z.string(),
   })
   .refine((data) => data.salaryMax >= data.salaryMin, {
@@ -89,6 +101,7 @@ export function ProfileForm() {
             salaryMax: profile.salaryMax,
             preferredLocations: profile.preferredLocations.join(", "),
             jobPreferences: profile.jobPreferences.join(", "),
+            companyPreferences: profile.companyPreferences || "",
             dealBreakers: profile.dealBreakers,
           });
         }
@@ -134,6 +147,7 @@ export function ProfileForm() {
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
+        companyPreferences: data.companyPreferences || undefined,
         dealBreakers: data.dealBreakers,
         scoringWeights: weights,
         updatedAt: new Date().toISOString(),
@@ -186,29 +200,82 @@ export function ProfileForm() {
   }
 
   return (
-    <div>
-      {existingProfile?.createdVia === "chat" && (
-        <Card className="mb-6 p-4 bg-blue-50 border-blue-200">
-          <p className="text-sm text-blue-800">
-            This profile was originally created via chat conversation with the
-            AI agent.
-          </p>
-        </Card>
-      )}
+    <TooltipProvider>
+      <div>
+        {existingProfile?.createdVia === "chat" && (
+          <Card className="mb-6 p-4 bg-blue-50 border-blue-200">
+            <p className="text-sm text-blue-800">
+              This profile was originally created via chat conversation with the
+              AI agent.
+            </p>
+          </Card>
+        )}
 
-      {errorMessage && (
-        <Card className="mb-6 p-4 bg-red-50 border-red-200">
-          <p className="text-sm text-red-800">{errorMessage}</p>
-        </Card>
-      )}
+        {errorMessage && (
+          <Card className="mb-6 p-4 bg-red-50 border-red-200">
+            <p className="text-sm text-red-800">{errorMessage}</p>
+          </Card>
+        )}
 
-      {successMessage && (
-        <Card className="mb-6 p-4 bg-green-50 border-green-200">
-          <p className="text-sm text-green-800">{successMessage}</p>
-        </Card>
-      )}
+        {successMessage && (
+          <Card className="mb-6 p-4 bg-green-50 border-green-200">
+            <p className="text-sm text-green-800">{successMessage}</p>
+          </Card>
+        )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {/* How Scoring Works - Collapsible Section */}
+        <Collapsible className="mb-6">
+          <CollapsibleTrigger className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors">
+            <Info className="w-4 h-4" />
+            <span className="font-medium">How does job scoring work?</span>
+            <ChevronDown className="w-4 h-4" />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-4">
+            <Card className="p-4 bg-blue-50 border-blue-200">
+              <p className="text-sm text-gray-700 mb-3">
+                The Matching Agent scores jobs 0-100 based on 5 categories:
+              </p>
+              <ul className="space-y-2 text-sm text-gray-700">
+                <li>
+                  <strong>🎯 Salary Match</strong>
+                  <br />
+                  → Uses: Salary Range
+                  <br />→ Full points if job salary overlaps your range
+                </li>
+                <li>
+                  <strong>📍 Location Fit</strong>
+                  <br />
+                  → Uses: Preferred Locations
+                  <br />→ Full points if job is remote or matches your locations
+                </li>
+                <li>
+                  <strong>🏢 Company Fit</strong>
+                  <br />
+                  → Uses: Company Preferences
+                  <br />→ AI analyzes if company aligns with your preferences
+                </li>
+                <li>
+                  <strong>💼 Role Match</strong>
+                  <br />
+                  → Uses: Professional Background
+                  <br />→ AI checks if job title/level matches your experience
+                </li>
+                <li>
+                  <strong>✅ Requirements Fit</strong>
+                  <br />
+                  → Uses: Skills, Professional Background
+                  <br />→ AI calculates what % of requirements you meet
+                </li>
+              </ul>
+              <p className="text-xs text-gray-600 mt-3 italic">
+                💡 Tip: Fill out Professional Background, Skills, and Company
+                Preferences thoroughly for the most accurate scoring!
+              </p>
+            </Card>
+          </CollapsibleContent>
+        </Collapsible>
+
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Name */}
         <div className="space-y-2">
           <Label htmlFor="name">Name</Label>
@@ -224,8 +291,19 @@ export function ProfileForm() {
 
         {/* Professional Background */}
         <div className="space-y-2">
-          <Label htmlFor="professionalBackground">
+          <Label htmlFor="professionalBackground" className="flex items-center gap-2">
             Professional Background
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">
+                  Critical for scoring - AI analyzes experience level and seniority for
+                  Role Match and Requirements Fit. Think LinkedIn "About" section.
+                </p>
+              </TooltipContent>
+            </Tooltip>
           </Label>
           <Textarea
             id="professionalBackground"
@@ -242,7 +320,20 @@ export function ProfileForm() {
 
         {/* Skills */}
         <div className="space-y-2">
-          <Label htmlFor="skills">Skills</Label>
+          <Label htmlFor="skills" className="flex items-center gap-2">
+            Skills
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">
+                  Critical for scoring - used to calculate Requirements Fit (what % of job
+                  requirements you meet). Be thorough!
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </Label>
           <Input
             id="skills"
             {...register("skills")}
@@ -254,36 +345,64 @@ export function ProfileForm() {
         </div>
 
         {/* Salary Range */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="salaryMin">Minimum Salary ($)</Label>
-            <Input
-              id="salaryMin"
-              type="number"
-              {...register("salaryMin", { valueAsNumber: true })}
-              placeholder="80000"
-            />
-            {errors.salaryMin && (
-              <p className="text-sm text-red-600">{errors.salaryMin.message}</p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="salaryMax">Maximum Salary ($)</Label>
-            <Input
-              id="salaryMax"
-              type="number"
-              {...register("salaryMax", { valueAsNumber: true })}
-              placeholder="150000"
-            />
-            {errors.salaryMax && (
-              <p className="text-sm text-red-600">{errors.salaryMax.message}</p>
-            )}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            Salary Range
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">
+                  Critical for scoring - jobs within your range get full points for Salary
+                  Match.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </Label>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="salaryMin" className="text-sm text-gray-600">Minimum ($)</Label>
+              <Input
+                id="salaryMin"
+                type="number"
+                {...register("salaryMin", { valueAsNumber: true })}
+                placeholder="80000"
+              />
+              {errors.salaryMin && (
+                <p className="text-sm text-red-600">{errors.salaryMin.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="salaryMax" className="text-sm text-gray-600">Maximum ($)</Label>
+              <Input
+                id="salaryMax"
+                type="number"
+                {...register("salaryMax", { valueAsNumber: true })}
+                placeholder="150000"
+              />
+              {errors.salaryMax && (
+                <p className="text-sm text-red-600">{errors.salaryMax.message}</p>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Preferred Locations */}
         <div className="space-y-2">
-          <Label htmlFor="preferredLocations">Preferred Locations</Label>
+          <Label htmlFor="preferredLocations" className="flex items-center gap-2">
+            Preferred Locations
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">
+                  Critical for scoring - matching locations get full points for Location Fit.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </Label>
           <Input
             id="preferredLocations"
             {...register("preferredLocations")}
@@ -311,13 +430,55 @@ export function ProfileForm() {
           )}
         </div>
 
+        {/* Company Preferences - NEW */}
+        <div className="space-y-2">
+          <Label htmlFor="companyPreferences" className="flex items-center gap-2">
+            What makes a company appealing to you? (optional)
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">
+                  Describe your ideal company - industries, size, culture, values. Used for
+                  Company Fit scoring.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </Label>
+          <Textarea
+            id="companyPreferences"
+            {...register("companyPreferences")}
+            placeholder="e.g., I prefer remote-first companies in fintech or climate tech with strong engineering cultures and good work-life balance. I'm drawn to mission-driven startups (Series B+) or established tech companies with good reputations."
+            rows={4}
+          />
+          {errors.companyPreferences && (
+            <p className="text-sm text-red-600">
+              {errors.companyPreferences.message}
+            </p>
+          )}
+        </div>
+
         {/* Deal Breakers */}
         <div className="space-y-2">
-          <Label htmlFor="dealBreakers">Deal Breakers</Label>
+          <Label htmlFor="dealBreakers" className="flex items-center gap-2">
+            Deal Breakers (optional)
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p className="text-xs">
+                  Jobs matching these criteria will be flagged and scored lower. Be specific
+                  about hard limits.
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </Label>
           <Textarea
             id="dealBreakers"
             {...register("dealBreakers")}
-            placeholder="Requirements or conditions that would disqualify a job..."
+            placeholder="e.g., No travel >25%, No on-call rotations, No crypto/Web3 companies, Must be fully remote"
             rows={3}
           />
           {errors.dealBreakers && (
@@ -335,6 +496,7 @@ export function ProfileForm() {
           {isSubmitting ? "Saving..." : "Save Profile"}
         </Button>
       </form>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
