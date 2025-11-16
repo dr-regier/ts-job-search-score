@@ -7,8 +7,13 @@ import { ResumeCard } from "@/components/resumes/ResumeCard";
 import { ResumeEditDialog } from "@/components/resumes/ResumeEditDialog";
 import { Button } from "@/components/ui/button";
 import type { Resume } from "@/types/resume";
-import { FileText, Upload, Lightbulb, Loader2, Info } from "lucide-react";
+import { FileText, Upload, Lightbulb, Loader2, Info, ChevronDown } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from "@/components/ui/collapsible";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -168,14 +173,15 @@ export default function ResumesPage() {
             </p>
           </div>
 
-          {/* How Resumes Are Used - Context Callout */}
-          <Card className="p-5 bg-blue-50 border-blue-200">
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-sm font-semibold text-blue-900 mb-2">
-                  How resumes are used
-                </h3>
+          {/* How Resumes Are Used - Collapsible Section */}
+          <Collapsible>
+            <CollapsibleTrigger className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition-colors">
+              <Info className="w-4 h-4" />
+              <span className="font-medium">How resumes are used</span>
+              <ChevronDown className="w-4 h-4" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-4">
+              <Card className="p-5 bg-blue-50 border-blue-200">
                 <ul className="space-y-1.5 text-sm text-blue-800">
                   <li className="flex items-start gap-2">
                     <span className="font-semibold mt-0.5">📊 Not used for job scoring</span>
@@ -196,9 +202,9 @@ export default function ResumesPage() {
                     </span>
                   </li>
                 </ul>
-              </div>
-            </div>
-          </Card>
+              </Card>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Upload Section */}
           <div className="bg-white rounded-lg p-6 border border-gray-200">
